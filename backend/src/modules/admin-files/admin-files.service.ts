@@ -1,0 +1,51 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import * as fs from 'fs';
+import * as path from 'path';
+import { FileEntity } from '../../entities/file.entity';
+import { ConfigService } from '@nestjs/config';
+
+@Injectable()
+export class AdminFilesService {
+  constructor(
+    @InjectRepository(FileEntity)
+    private fileRepo: Repository<FileEntity>,
+    private configService: ConfigService,
+  ) {}
+
+  async findAll(page: number, limit: number) {
+    const [items, total] = await this.fileRepo.findAndCount({
+      order: { uploadedAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async remove(id: number) {
+    const file = await this.fileRepo.findOne({ where: { id } });
+    if (!file) {
+      throw new NotFoundException('文件不存在');
+    }
+
+    // Delete physical file
+    const uploadBaseDir = this.configService.get<string>('uploadBaseDir');
+    const physicalPath = path.join(uploadBaseDir, file.relativePath.replace('uploads/', ''));
+    if (fs.existsSync(physicalPath)) {
+      fs.unlinkSync(physicalPath);
+    }
+
+    // Delete database record
+    await this.fileRepo.remove(file);
+
+    return { message: '文件已成功删除' };
+  }
+}

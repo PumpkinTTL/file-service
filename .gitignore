@@ -1,0 +1,9 @@
+node_modules/
+dist/
+*.db
+.env
+backend/node_modules/
+backend/dist/
+backend/server.log
+backend/server.err
+.pnpm-store/

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>File Service</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #F8FAFC; color: #1E293B; min-height: 100vh; display: flex; flex-direction: column; }
+    
+    /* Nav */
+    nav { background: #fff; border-bottom: 1px solid #E2E8F0; padding: 0 32px; height: 64px; display: flex; align-items: center; justify-content: space-between; }
+    nav .brand { display: flex; align-items: center; gap: 10px; }
+    nav .brand svg { width: 28px; height: 28px; color: #2563EB; }
+    nav .brand span { font-size: 18px; font-weight: 700; color: #1E293B; }
+    nav .links { display: flex; gap: 8px; }
+    nav .links a { padding: 8px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; text-decoration: none; transition: all 0.2s; cursor: pointer; }
+    nav .links a.primary { background: #2563EB; color: #fff; }
+    nav .links a.primary:hover { background: #1D4ED8; }
+    nav .links a.secondary { background: #F1F5F9; color: #475569; }
+    nav .links a.secondary:hover { background: #E2E8F0; }
+
+    /* Hero */
+    .hero { flex: 1; display: flex; align-items: center; justify-content: center; padding: 60px 32px; }
+    .hero-inner { text-align: center; max-width: 600px; }
+    .hero-badge { display: inline-flex; align-items: center; gap: 6px; background: #EFF6FF; color: #2563EB; padding: 6px 14px; border-radius: 100px; font-size: 13px; font-weight: 500; margin-bottom: 24px; border: 1px solid #BFDBFE; }
+    .hero-badge svg { width: 14px; height: 14px; }
+    .hero h1 { font-size: 42px; font-weight: 700; line-height: 1.15; color: #0F172A; margin-bottom: 16px; letter-spacing: -0.02em; }
+    .hero p { font-size: 17px; color: #64748B; line-height: 1.6; margin-bottom: 40px; }
+    .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 28px; border-radius: 10px; font-size: 15px; font-weight: 500; text-decoration: none; cursor: pointer; border: none; transition: all 0.2s; }
+    .btn svg { width: 18px; height: 18px; }
+    .btn-primary { background: #2563EB; color: #fff; box-shadow: 0 1px 2px rgba(37,99,235,0.3); }
+    .btn-primary:hover { background: #1D4ED8; box-shadow: 0 4px 12px rgba(37,99,235,0.3); }
+    .btn-outline { background: #fff; color: #475569; border: 1px solid #E2E8F0; }
+    .btn-outline:hover { background: #F8FAFC; border-color: #CBD5E1; }
+
+    /* Features */
+    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 800px; margin: 0 auto; padding: 0 32px 60px; }
+    .feature { background: #fff; border: 1px solid #E2E8F0; border-radius: 12px; padding: 24px; transition: box-shadow 0.2s; }
+    .feature:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+    .feature-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 14px; }
+    .feature-icon.blue { background: #EFF6FF; color: #2563EB; }
+    .feature-icon.green { background: #F0FDF4; color: #16A34A; }
+    .feature-icon.amber { background: #FFFBEB; color: #D97706; }
+    .feature-icon svg { width: 20px; height: 20px; }
+    .feature h3 { font-size: 15px; font-weight: 600; color: #1E293B; margin-bottom: 6px; }
+    .feature p { font-size: 13px; color: #64748B; line-height: 1.5; }
+
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 30px; }
+      .features { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="brand">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <span>File Service</span>
+    </div>
+    <div class="links">
+      <a href="/client.html" class="primary">上传文件</a>
+      <a href="/admin.html" class="secondary">管理后台</a>
+    </div>
+  </nav>
+  <div class="hero">
+    <div class="hero-inner">
+      <div class="hero-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        企业级文件服务
+      </div>
+      <h1>安全可靠的文件上传服务</h1>
+      <p>支持 Token 权限管理、文件 Hash 去重秒传、按日期自动归档，为多系统提供统一的文件存储接口。</p>
+      <div class="hero-actions">
+        <a href="/client.html" class="btn btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          上传文件
+        </a>
+        <a href="/admin.html" class="btn btn-outline">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          管理后台
+        </a>
+      </div>
+    </div>
+  </div>
+  <div class="features">
+    <div class="feature">
+      <div class="feature-icon blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <h3>Token 权限管理</h3>
+      <p>每个系统独立 Token，支持禁用、轮换、追踪</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon green">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+      </div>
+      <h3>Hash 秒传</h3>
+      <p>SHA256 去重检测，相同文件瞬间完成上传</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon amber">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+      </div>
+      <h3>自动归档</h3>
+      <p>按年/月/日自动组织，支持开发/生产环境切换</p>
+    </div>
+  </div>
+</body>
+</html>
