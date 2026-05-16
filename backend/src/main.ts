@@ -13,17 +13,25 @@ import { ConfigService } from '@nestjs/config';
 import multipart from '@fastify/multipart';
 
 async function bootstrap() {
+  const maxSize = 209715200; // 200MB fallback
+
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter(),
+    new FastifyAdapter({
+      bodyLimit: 200 * 1024 * 1024, // Fastify body limit 200MB
+    }),
   );
 
   const configService = app.get(ConfigService);
+  const maxFileSize = configService.get<number>('maxFileSize') || maxSize;
 
   // Register multipart support
   await app.register(multipart, {
     limits: {
-      fileSize: configService.get<number>('maxFileSize') || 52428800,
+      fileSize: maxFileSize,
+      fieldSize: 1024 * 1024,
+      fields: 10,
+      files: 1,
     },
   });
 
@@ -58,6 +66,7 @@ async function bootstrap() {
   console.log(`File Service running on http://localhost:${port}`);
   console.log(`Environment: ${configService.get<string>('nodeEnv')}`);
   console.log(`Upload dir: ${uploadBaseDir}`);
+  console.log(`Max file size: ${(maxFileSize / 1024 / 1024).toFixed(0)}MB`);
 }
 
 bootstrap();

@@ -19,9 +19,21 @@ export class AllExceptionsFilter implements ExceptionFilter {
       status = exception.getStatus();
       const res = exception.getResponse();
       message = typeof res === 'string' ? res : (res as Record<string, unknown>).message as string || message;
+    } else {
+      // Handle non-HttpException errors (e.g. fastify/multipart errors)
+      const err = exception as any;
+      if (err?.code === 'FST_REQ_FILE_TOO_LARGE' || err?.statusCode === 413) {
+        status = HttpStatus.PAYLOAD_TOO_LARGE;
+        message = '上传文件大小超过服务器限制';
+      } else if (err?.code === 'FST_INVALID_MULTIPART_CONTENT_TYPE') {
+        status = HttpStatus.BAD_REQUEST;
+        message = '请求格式错误：需要 multipart/form-data';
+      } else if (err?.message) {
+        message = err.message;
+      }
     }
 
-    console.error('Exception:', exception);
+    console.error(`[${status}]`, exception);
     response.status(status).send({
       code: status,
       message: Array.isArray(message) ? message.join('; ') : message,
