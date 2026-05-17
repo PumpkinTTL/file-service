@@ -17,6 +17,7 @@ const UPLOAD_ID_REGEX = /^[a-f0-9]{32}$/i;
 
 @Injectable()
 export class UploadService {
+  private readonly logger = new Logger(UploadService.name);
   private uploadBaseDir: string;
   private baseUrl: string;
 
@@ -135,12 +136,10 @@ export class UploadService {
 
     // 保存切片到临时目录（纯磁盘写入，无 DB 操作）
     const chunkDir = path.join(this.uploadBaseDir, '.chunks', uploadId);
-    if (!fs.existsSync(chunkDir)) {
-      fs.mkdirSync(chunkDir, { recursive: true });
-    }
+    fs.mkdirSync(chunkDir, { recursive: true });
 
     const chunkPath = path.join(chunkDir, String(chunkIndex));
-    fs.writeFileSync(chunkPath, chunkBuffer);
+    await fs.promises.writeFile(chunkPath, chunkBuffer);
 
     return {
       uploadId: session.uploadId,
@@ -152,8 +151,6 @@ export class UploadService {
   /**
    * POST /upload/merge — 合并切片
    */
-  private readonly logger = new Logger(UploadService.name);
-
   async mergeChunks(
     uploadId: string,
     filename: string,
@@ -180,15 +177,7 @@ export class UploadService {
     const chunkDir = path.join(this.uploadBaseDir, '.chunks', uploadId);
 
     try {
-      // 从磁盘读取已上传切片，验证完整性
-      const uploadedChunks = await this.getChunkFiles(uploadId);
-      if (uploadedChunks.length !== totalChunks) {
-        throw new BadRequestException(
-          `切片不完整：已上传 ${uploadedChunks.length}/${totalChunks} 个切片`,
-        );
-      }
-
-      // 查重（在读 chunks 之前查重可省 I/O，但 chunks 已读了，保持此处逻辑）
+      // 先查重：重复文件直接返回，避免后续磁盘 I/O
       const existing = await this.fileRepo.findOne({ where: { hash } });
       if (existing) {
         this.cleanupChunks(chunkDir);
@@ -205,16 +194,21 @@ export class UploadService {
         };
       }
 
+      // 从磁盘读取已上传切片，验证完整性
+      const uploadedChunks = await this.getChunkFiles(uploadId);
+      if (uploadedChunks.length !== totalChunks) {
+        throw new BadRequestException(
+          `切片不完整：已上传 ${uploadedChunks.length}/${totalChunks} 个切片`,
+        );
+      }
+
       // 合并切片 — 使用 stream/promises/pipeline 正确处理背压
       const datePath = getDatePath();
       const ext = path.extname(filename).toLowerCase();
       const fileName = `${uuidv4()}${ext}`;
       const relativePath = `uploads/${datePath}/${fileName}`;
       const fullDirPath = path.join(this.uploadBaseDir, datePath);
-
-      if (!fs.existsSync(fullDirPath)) {
-        fs.mkdirSync(fullDirPath, { recursive: true });
-      }
+      fs.mkdirSync(fullDirPath, { recursive: true });
 
       const fullPath = path.join(this.uploadBaseDir, datePath, fileName);
       const writeStream = fs.createWriteStream(fullPath);
@@ -303,10 +297,10 @@ export class UploadService {
       uploadId: session.uploadId,
       uploadedChunks,
       totalChunks: Number(session.totalChunks),
-      chunkSize: session.chunkSize,
+      chunkSize: Number(session.chunkSize),
       status: session.status,
       originalName: session.originalName,
-      fileSize: session.fileSize,
+      fileSize: Number(session.fileSize),
     };
   }
 
@@ -373,13 +367,10 @@ export class UploadService {
     const fileName = `${uuidv4()}${ext}`;
     const relativePath = `uploads/${datePath}/${fileName}`;
     const fullDirPath = path.join(this.uploadBaseDir, datePath);
-
-    if (!fs.existsSync(fullDirPath)) {
-      fs.mkdirSync(fullDirPath, { recursive: true });
-    }
+    fs.mkdirSync(fullDirPath, { recursive: true });
 
     const fullPath = path.join(this.uploadBaseDir, datePath, fileName);
-    fs.writeFileSync(fullPath, buffer);
+    await fs.promises.writeFile(fullPath, buffer);
 
     const fullUrl = `${this.baseUrl}/${relativePath}`;
 
