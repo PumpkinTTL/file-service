@@ -39,7 +39,7 @@ export class AdminFilesService {
 
     // Delete physical file — 防止路径遍历
     const uploadBaseDir = this.configService.get<string>('uploadBaseDir');
-    const physicalPath = path.resolve(uploadBaseDir, file.relativePath.replace('uploads/', ''));
+    const physicalPath = path.resolve(uploadBaseDir, file.relativePath.replace(/^uploads\//, ''));
     if (!physicalPath.startsWith(path.resolve(uploadBaseDir))) {
       throw new BadRequestException('无效的文件路径');
     }
