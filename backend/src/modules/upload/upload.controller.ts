@@ -9,6 +9,7 @@ import {
   PayloadTooLargeException,
   Req,
 } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { UploadTokenGuard } from '../../common/guards/upload-token.guard';
 import { UploadService } from './upload.service';
 import { ConfigService } from '@nestjs/config';
@@ -17,6 +18,7 @@ import { MergeChunksDto } from './dto/merge-chunks.dto';
 import { verifyMimeType } from '../../common/utils/mime-check.util';
 
 @Controller('upload')
+@SkipThrottle()
 export class UploadController {
   private maxFileSize: number;
   private chunkThreshold: number;
