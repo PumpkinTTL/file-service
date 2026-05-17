@@ -14,6 +14,7 @@ import { UploadService } from './upload.service';
 import { ConfigService } from '@nestjs/config';
 import { CheckUploadDto } from './dto/check-upload.dto';
 import { MergeChunksDto } from './dto/merge-chunks.dto';
+import { verifyMimeType } from '../../common/utils/mime-check.util';
 
 @Controller('upload')
 export class UploadController {
@@ -105,6 +106,12 @@ export class UploadController {
         throw new PayloadTooLargeException(`文件大小超过限制（最大 ${maxMB}MB）`);
       }
       throw new BadRequestException(`文件读取失败：${err?.message || '未知错误'}`);
+    }
+
+    // Magic bytes 校验：验证文件实际内容与扩展名一致
+    const mimeCheck = verifyMimeType(buffer, ext);
+    if (!mimeCheck.valid) {
+      throw new BadRequestException(mimeCheck.reason || '文件类型校验失败');
     }
 
     const token = request.uploadToken;

@@ -179,7 +179,7 @@ export class UploadService {
       };
     }
 
-    // 合并切片
+    // 合并切片 — 流式写入，避免大文件 OOM
     const datePath = getDatePath();
     const ext = path.extname(filename).toLowerCase();
     const fileName = `${uuidv4()}${ext}`;
@@ -195,12 +195,17 @@ export class UploadService {
 
     for (let i = 0; i < totalChunks; i++) {
       const chunkPath = path.join(chunkDir, String(i));
-      const chunkData = fs.readFileSync(chunkPath);
-      writeStream.write(chunkData);
+      // Stream each chunk instead of reading entire file into memory
+      const chunkReadStream = fs.createReadStream(chunkPath);
+      await new Promise<void>((resolve, reject) => {
+        chunkReadStream.pipe(writeStream, { end: false });
+        chunkReadStream.on('end', resolve);
+        chunkReadStream.on('error', reject);
+      });
     }
-    writeStream.end();
 
-    // 等待写入完成
+    // End the write stream and wait for finish
+    writeStream.end();
     await new Promise<void>((resolve, reject) => {
       writeStream.on('finish', resolve);
       writeStream.on('error', reject);
