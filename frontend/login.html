@@ -10,33 +10,37 @@
   <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #F8FAFC; color: #1E293B; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #F8FAFC; color: #1E293B; min-height: 100vh; display: flex; align-items: center; justify-content: center; -webkit-font-smoothing: antialiased; }
 
     .login-wrapper { display: flex; align-items: center; justify-content: center; width: 100%; padding: 24px; }
-    .login-card { background: #fff; border-radius: 16px; padding: 48px 40px; width: 420px; box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.06); border: 1px solid #E2E8F0; }
+    .login-card { background: #fff; border-radius: 12px; padding: 40px 36px; width: 400px; box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04); border: 1px solid #E2E8F0; }
 
-    .logo { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 8px; }
-    .logo svg { width: 32px; height: 32px; color: #2563EB; }
-    .logo span { font-size: 22px; font-weight: 700; color: #0F172A; }
-    .subtitle { text-align: center; color: #64748B; font-size: 14px; margin-bottom: 36px; }
+    .logo { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 6px; }
+    .logo svg { width: 28px; height: 28px; color: #2563EB; }
+    .logo span { font-size: 20px; font-weight: 700; color: #0F172A; letter-spacing: -0.02em; }
+    .subtitle { text-align: center; color: #64748B; font-size: 14px; margin-bottom: 32px; line-height: 1.5; }
 
-    .form-group { margin-bottom: 20px; }
-    .form-group label { display: block; font-size: 13px; font-weight: 500; color: #475569; margin-bottom: 6px; }
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 6px; }
     .input-wrapper { position: relative; }
-    .input-wrapper svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: #94A3B8; }
-    .input-wrapper input { width: 100%; padding: 11px 12px 11px 40px; border: 1px solid #E2E8F0; border-radius: 10px; font-size: 14px; color: #1E293B; background: #F8FAFC; transition: all 0.2s; outline: none; font-family: inherit; }
-    .input-wrapper input:focus { border-color: #2563EB; background: #fff; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+    .input-wrapper svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: #94A3B8; pointer-events: none; }
+    .input-wrapper input { width: 100%; padding: 10px 12px 10px 40px; border: 1px solid #E2E8F0; border-radius: 8px; font-size: 14px; color: #1E293B; background: #F8FAFC; transition: border-color 0.15s ease, background-color 0.15s ease; outline: none; font-family: inherit; }
+    .input-wrapper input:focus { border-color: #2563EB; background: #fff; }
     .input-wrapper input::placeholder { color: #94A3B8; }
 
-    .btn-login { width: 100%; padding: 12px; background: #2563EB; color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: inherit; margin-top: 8px; }
-    .btn-login:hover { background: #1D4ED8; box-shadow: 0 4px 12px rgba(37,99,235,0.25); }
-    .btn-login:disabled { background: #94A3B8; cursor: not-allowed; box-shadow: none; }
-    .btn-login:active:not(:disabled) { transform: scale(0.98); }
+    .btn-login { width: 100%; padding: 11px; background: #2563EB; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background-color 0.15s ease; font-family: inherit; margin-top: 4px; }
+    .btn-login:hover { background: #1D4ED8; }
+    .btn-login:disabled { background: #94A3B8; cursor: not-allowed; }
+    .btn-login:active:not(:disabled) { background: #1E40AF; }
 
-    .error { background: #FEF2F2; color: #DC2626; font-size: 13px; text-align: center; margin-top: 16px; padding: 10px 14px; border-radius: 8px; border: 1px solid #FECACA; }
+    .error { background: #FEF2F2; color: #DC2626; font-size: 13px; text-align: center; margin-top: 14px; padding: 10px 14px; border-radius: 8px; border: 1px solid #FECACA; line-height: 1.5; }
 
     .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; margin-right: 6px; vertical-align: middle; }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (prefers-reduced-motion: reduce) {
+      .spinner { animation-duration: 1.5s; }
+    }
   </style>
 </head>
 <body>

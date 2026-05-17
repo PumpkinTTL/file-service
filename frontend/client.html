@@ -36,7 +36,6 @@
       --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
       --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.06), 0 2px 4px -1px rgba(0,0,0,0.04);
       --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.06), 0 4px 6px -2px rgba(0,0,0,0.04);
-      --shadow-glow: 0 0 0 4px rgba(37,99,235,0.08);
       --transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
     }
 
@@ -147,7 +146,7 @@
       border: 1px solid var(--border);
       margin-bottom: 20px;
       box-shadow: var(--shadow-sm);
-      transition: box-shadow var(--transition), transform var(--transition);
+      transition: box-shadow var(--transition);
     }
 
     .card:hover {
@@ -277,7 +276,6 @@
     }
 
     input[type="range"]::-webkit-slider-thumb:hover {
-      transform: scale(1.2);
       box-shadow: 0 2px 8px rgba(37,99,235,0.4);
     }
 
@@ -312,15 +310,13 @@
 
     .drop-zone:hover {
       border-color: var(--primary);
-      background: linear-gradient(135deg, #FAFBFC 0%, var(--primary-light) 100%);
-      box-shadow: 0 0 0 4px rgba(37,99,235,0.06);
+      background: var(--primary-light);
     }
 
     .drop-zone.dragover {
       border-color: var(--primary);
       border-style: solid;
-      background: linear-gradient(135deg, var(--primary-light) 0%, #DBEAFE 100%);
-      box-shadow: 0 0 0 4px rgba(37,99,235,0.1);
+      background: #DBEAFE;
     }
 
     .drop-zone .drop-icon {
@@ -333,22 +329,12 @@
       width: 44px;
       height: 44px;
       color: #CBD5E1;
-      transition: all 250ms ease;
+      transition: color 250ms ease;
     }
 
     .drop-zone:hover .drop-icon svg,
     .drop-zone.dragover .drop-icon svg {
       color: var(--primary);
-      transform: translateY(-4px) scale(1.05);
-    }
-
-    .drop-zone.dragover .drop-icon svg {
-      animation: float-icon 1.2s ease-in-out infinite;
-    }
-
-    @keyframes float-icon {
-      0%, 100% { transform: translateY(-4px); }
-      50% { transform: translateY(-10px); }
     }
 
     .drop-zone p {
@@ -384,7 +370,7 @@
       gap: 8px;
       width: 100%;
       padding: 14px 24px;
-      background: linear-gradient(135deg, var(--accent), #FB923C);
+      background: var(--accent);
       color: #fff;
       border: none;
       border-radius: var(--radius-md);
@@ -399,13 +385,11 @@
     }
 
     .btn-upload:hover:not(:disabled) {
-      background: linear-gradient(135deg, var(--accent-hover), #FB923C);
-      box-shadow: 0 4px 14px rgba(249,115,22,0.35);
-      transform: translateY(-1px);
+      background: var(--accent-hover);
+      box-shadow: 0 4px 12px rgba(249,115,22,0.3);
     }
 
     .btn-upload:active:not(:disabled) {
-      transform: translateY(0) scale(0.98);
       box-shadow: 0 1px 3px rgba(249,115,22,0.25);
     }
 
@@ -438,10 +422,6 @@
       background: var(--bg);
       border-color: var(--border-hover);
       color: var(--text);
-    }
-
-    .btn-pause:active {
-      transform: scale(0.98);
     }
 
     .btn-copy {
@@ -487,26 +467,9 @@
 
     .progress-fill {
       height: 100%;
-      background: linear-gradient(90deg, var(--primary), #60A5FA);
+      background: var(--primary);
       border-radius: 4px;
       transition: width 400ms cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .progress-fill::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-      animation: shimmer 2s infinite;
-    }
-
-    @keyframes shimmer {
-      100% { left: 100%; }
     }
 
     .progress-text {
@@ -551,12 +514,6 @@
       background: var(--primary);
       border-radius: 50%;
       flex-shrink: 0;
-      animation: pulse-dot 1.4s ease-in-out infinite;
-    }
-
-    @keyframes pulse-dot {
-      0%, 100% { opacity: 0.3; transform: scale(0.85); }
-      50% { opacity: 1; transform: scale(1.2); }
     }
 
     /* ===== Resume Info ===== */
@@ -575,13 +532,7 @@
     /* ===== Result Card ===== */
     .result-card {
       border-left: 4px solid var(--success);
-      background: linear-gradient(135deg, #fff 0%, #FAFFFE 100%);
-      animation: result-slide-up 400ms ease both;
-    }
-
-    @keyframes result-slide-up {
-      from { opacity: 0; transform: translateY(12px); }
-      to { opacity: 1; transform: translateY(0); }
+      background: #fff;
     }
 
     .result-card .result-icon {
@@ -660,6 +611,18 @@
     .badge svg {
       width: 13px;
       height: 13px;
+    }
+
+    /* ===== Reduced Motion ===== */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+      .progress-fill {
+        transition-duration: 0.01ms !important;
+      }
     }
 
     /* ===== Responsive ===== */
