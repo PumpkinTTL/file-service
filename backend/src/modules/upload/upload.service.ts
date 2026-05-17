@@ -9,6 +9,7 @@ import { UploadTokenEntity } from '../../entities/upload-token.entity';
 import { UploadSessionEntity } from '../../entities/upload-session.entity';
 import { ConfigService } from '@nestjs/config';
 import { getDatePath } from '../../common/utils/date-path.util';
+import { computeBufferHash, computeFileHash } from '../../common/utils/file-hash.util';
 
 @Injectable()
 export class UploadService {
@@ -64,7 +65,6 @@ export class UploadService {
     clientHash?: string,
     token?: UploadTokenEntity,
   ) {
-    const { computeBufferHash } = require('../../common/utils/file-hash.util');
     const hash = computeBufferHash(buffer);
 
     // 如果前端传了 hash，校验一致性
@@ -114,9 +114,14 @@ export class UploadService {
       throw new BadRequestException(`切片索引无效，有效范围：0-${Number(session.totalChunks) - 1}`);
     }
 
-    // 校验切片大小不超过 session 的 chunkSize
-    if (chunkBuffer.length > Number(session.chunkSize)) {
+    // 校验切片大小：最后一个切片允许小于 chunkSize，其余不允许超过
+    const isLastChunk = chunkIndex === Number(session.totalChunks) - 1;
+    if (!isLastChunk && chunkBuffer.length > Number(session.chunkSize)) {
       throw new BadRequestException(`切片 ${chunkIndex} 大小 ${chunkBuffer.length} 超过限制 ${session.chunkSize}`);
+    }
+    // 所有切片都不允许超过 2x chunkSize（防止恶意上传）
+    if (chunkBuffer.length > Number(session.chunkSize) * 2) {
+      throw new BadRequestException(`切片 ${chunkIndex} 大小异常，远超 chunkSize`);
     }
 
     // 保存切片到临时目录（纯磁盘写入，无 DB 操作）
@@ -152,7 +157,7 @@ export class UploadService {
     }
 
     // 从磁盘读取已上传切片，验证完整性
-    const uploadedChunks = this.getChunkFiles(uploadId);
+    const uploadedChunks = await this.getChunkFiles(uploadId);
     if (uploadedChunks.length !== totalChunks) {
       throw new BadRequestException(
         `切片不完整：已上传 ${uploadedChunks.length}/${totalChunks} 个切片`,
@@ -212,7 +217,6 @@ export class UploadService {
     });
 
     // 验证合并后的 hash
-    const { computeFileHash } = require('../../common/utils/file-hash.util');
     const actualHash = await computeFileHash(fullPath);
     if (hash && actualHash !== hash) {
       fs.unlinkSync(fullPath);
@@ -262,7 +266,7 @@ export class UploadService {
     }
 
     // 从磁盘读取已上传的切片列表（零 DB 操作）
-    const uploadedChunks = this.getChunkFiles(uploadId);
+    const uploadedChunks = await this.getChunkFiles(uploadId);
 
     return {
       uploadId: session.uploadId,
@@ -369,15 +373,17 @@ export class UploadService {
   /**
    * 从磁盘读取已上传的切片索引列表
    */
-  private getChunkFiles(uploadId: string): number[] {
+  private async getChunkFiles(uploadId: string): Promise<number[]> {
     const chunkDir = path.join(this.uploadBaseDir, '.chunks', uploadId);
-    if (!fs.existsSync(chunkDir)) {
+    try {
+      const files = await fs.promises.readdir(chunkDir);
+      return files
+        .map(name => parseInt(name, 10))
+        .filter(n => !isNaN(n))
+        .sort((a, b) => a - b);
+    } catch {
       return [];
     }
-    return fs.readdirSync(chunkDir)
-      .map(name => parseInt(name, 10))
-      .filter(n => !isNaN(n))
-      .sort((a, b) => a - b);
   }
 
   /**

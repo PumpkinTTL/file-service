@@ -16,6 +16,7 @@ export class AdminFilesService {
 
   async findAll(page: number, limit: number) {
     const [items, total] = await this.fileRepo.findAndCount({
+      where: { deletedAt: undefined as any },
       order: { uploadedAt: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
@@ -43,8 +44,8 @@ export class AdminFilesService {
       fs.unlinkSync(physicalPath);
     }
 
-    // Delete database record
-    await this.fileRepo.remove(file);
+    // Soft delete — sets deletedAt via @DeleteDateColumn
+    await this.fileRepo.softRemove(file);
 
     return { message: '文件已成功删除' };
   }

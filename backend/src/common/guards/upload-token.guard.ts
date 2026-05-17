@@ -33,10 +33,11 @@ export class UploadTokenGuard implements CanActivate {
       throw new UnauthorizedException('Upload Token 已过期');
     }
 
-    // Update last used info
-    token.lastUsedAt = new Date();
-    token.lastUsedIp = request.ip || request.headers['x-forwarded-for'] || 'unknown';
-    await this.tokenRepo.save(token);
+    // Update last used info — lightweight UPDATE instead of full save()
+    await this.tokenRepo.update(token.id, {
+      lastUsedAt: new Date(),
+      lastUsedIp: request.ip || request.headers['x-forwarded-for'] || 'unknown',
+    });
 
     request.uploadToken = token;
     return true;
