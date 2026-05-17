@@ -54,7 +54,7 @@ export class UploadController {
       filename,
       size,
       chunkSize,
-      'application/octet-stream', // 前端可以传 mimeType 过来
+      dto.mimeType || 'application/octet-stream',
       token,
     );
 
