@@ -4,9 +4,11 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
 
 @Entity('upload_sessions')
+@Index(['fileHash', 'status'])
 export class UploadSessionEntity {
   @PrimaryGeneratedColumn()
   id: number;

@@ -4,6 +4,7 @@ import {
   Column,
   CreateDateColumn,
   DeleteDateColumn,
+  Index,
 } from 'typeorm';
 
 @Entity('files')
@@ -23,6 +24,7 @@ export class FileEntity {
   @Column({ name: 'full_url', comment: '完整访问URL' })
   fullUrl: string;
 
+  @Index()
   @Column({ comment: '文件SHA256哈希', nullable: true })
   hash: string;
 

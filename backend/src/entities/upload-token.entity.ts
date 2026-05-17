@@ -4,6 +4,7 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
 
 @Entity('upload_tokens')
@@ -14,6 +15,7 @@ export class UploadTokenEntity {
   @Column({ comment: '签发对象名称' })
   name: string;
 
+  @Index({ unique: true })
   @Column({ name: 'token_hash', comment: 'Token哈希值' })
   tokenHash: string;
 
