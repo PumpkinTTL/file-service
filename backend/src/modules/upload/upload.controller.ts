@@ -8,6 +8,7 @@ import {
   BadRequestException,
   PayloadTooLargeException,
   Req,
+  Logger,
 } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
 import { UploadTokenGuard } from '../../common/guards/upload-token.guard';
@@ -21,14 +22,13 @@ import { verifyMimeType } from '../../common/utils/mime-check.util';
 @SkipThrottle()
 export class UploadController {
   private maxFileSize: number;
-  private chunkThreshold: number;
+  private readonly logger = new Logger(UploadController.name);
 
   constructor(
     private uploadService: UploadService,
     private configService: ConfigService,
   ) {
     this.maxFileSize = this.configService.get<number>('maxFileSize') || 209715200;
-    this.chunkThreshold = 10 * 1024 * 1024; // 10MB 以上走切片
   }
 
   /**
@@ -90,10 +90,14 @@ export class UploadController {
       throw new BadRequestException('未检测到上传文件');
     }
 
-    const allowedTypes = this.configService
-      .get<string>('allowedFileTypes')
+    const allowedTypesStr = this.configService.get<string>('allowedFileTypes');
+    if (!allowedTypesStr) {
+      throw new BadRequestException('服务配置错误：未设置允许的文件类型');
+    }
+    const allowedTypes = allowedTypesStr
       .split(',')
-      .map((t) => t.trim().toLowerCase());
+      .map((t) => t.trim().toLowerCase())
+      .filter(Boolean);
 
     const ext = data.filename.split('.').pop().toLowerCase();
     if (!allowedTypes.includes(ext)) {
@@ -166,12 +170,12 @@ export class UploadController {
 
       // 读取文件内容（和直传接口完全一致：toBuffer()）
       chunkBuffer = await fileData.toBuffer();
-      console.log(`chunk ${chunkIndex}: size=${chunkBuffer.length}`);
+      this.logger.debug(`chunk ${chunkIndex}: size=${chunkBuffer.length}`);
       if (chunkBuffer.length > 100 * 1024 * 1024) {
         throw new PayloadTooLargeException('单个切片大小超过硬限制（最大 100MB）');
       }
     } catch (err: any) {
-      console.error('uploadChunk error:', err?.code, err?.statusCode, err?.message);
+      this.logger.error(`uploadChunk error: ${err?.code} ${err?.statusCode} ${err?.message}`);
       if (this.isFileTooLarge(err)) {
         throw new PayloadTooLargeException('切片大小超过限制');
       }
