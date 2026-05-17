@@ -28,8 +28,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
       } else if (err?.code === 'FST_INVALID_MULTIPART_CONTENT_TYPE') {
         status = HttpStatus.BAD_REQUEST;
         message = '请求格式错误：需要 multipart/form-data';
-      } else if (err?.message) {
-        message = err.message;
+      } else {
+        // Don't leak raw error messages to clients
+        message = '服务器内部错误';
       }
     }
 
