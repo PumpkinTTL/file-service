@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as fs from 'fs';
@@ -37,9 +37,12 @@ export class AdminFilesService {
       throw new NotFoundException('文件不存在');
     }
 
-    // Delete physical file
+    // Delete physical file — 防止路径遍历
     const uploadBaseDir = this.configService.get<string>('uploadBaseDir');
-    const physicalPath = path.join(uploadBaseDir, file.relativePath.replace('uploads/', ''));
+    const physicalPath = path.resolve(uploadBaseDir, file.relativePath.replace('uploads/', ''));
+    if (!physicalPath.startsWith(path.resolve(uploadBaseDir))) {
+      throw new BadRequestException('无效的文件路径');
+    }
     if (fs.existsSync(physicalPath)) {
       fs.unlinkSync(physicalPath);
     }

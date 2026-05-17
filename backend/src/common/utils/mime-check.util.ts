@@ -50,7 +50,7 @@ function detectOfficeDoc(buffer: Buffer, targetExt: string): boolean {
   return false;
 }
 
-export interface MimeTypeCheckResult {
+interface MimeTypeCheckResult {
   valid: boolean;
   detectedExt?: string;
   reason?: string;
@@ -66,8 +66,14 @@ export function verifyMimeType(buffer: Buffer, claimedExt: string): MimeTypeChec
     return { valid: false, reason: '文件数据太小，无法校验类型' };
   }
 
-  // 文本文件跳过魔数校验（txt 无固定 magic bytes）
+  // 文本文件：检查不含二进制内容（null 字节）
   if (claimedExt === 'txt') {
+    for (let i = 0; i < buffer.length; i++) {
+      const byte = buffer[i];
+      if (byte === 0) {
+        return { valid: false, reason: '文本文件包含二进制内容（null 字节），可能是伪装文件' };
+      }
+    }
     return { valid: true };
   }
 
