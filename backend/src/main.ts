@@ -65,8 +65,12 @@ async function bootstrap() {
     },
   });
 
-  // CORS
-  app.enableCors();
+  // CORS — 限制 origin 防止跨站攻击
+  const corsOrigin = configService.get<string>('corsOrigin');
+  app.enableCors({
+    origin: corsOrigin ? corsOrigin.split(',').map(s => s.trim()) : true,
+    credentials: true,
+  });
 
   // Validation pipe
   app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));

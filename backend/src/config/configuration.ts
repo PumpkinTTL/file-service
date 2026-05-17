@@ -14,4 +14,7 @@ export default () => ({
   adminPassword: process.env.ADMIN_PASSWORD || 'admin123',
   maxFileSize: parseInt(process.env.MAX_FILE_SIZE, 10) || 209715200,
   allowedFileTypes: process.env.ALLOWED_FILE_TYPES || 'jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,zip,rar,mp4,mp3',
+  corsOrigin: process.env.CORS_ORIGIN || '',
+  throttlerTtl: parseInt(process.env.THROTTLE_TTL, 10) || 60,
+  throttlerLimit: parseInt(process.env.THROTTLE_LIMIT, 10) || 30,
 });
