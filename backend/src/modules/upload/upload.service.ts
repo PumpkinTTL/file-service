@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as fs from 'fs';
@@ -6,35 +6,74 @@ import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { FileEntity } from '../../entities/file.entity';
 import { UploadTokenEntity } from '../../entities/upload-token.entity';
+import { UploadSessionEntity } from '../../entities/upload-session.entity';
 import { ConfigService } from '@nestjs/config';
 import { getDatePath } from '../../common/utils/date-path.util';
-import { computeBufferHash } from '../../common/utils/file-hash.util';
 
 @Injectable()
 export class UploadService {
+  private uploadBaseDir: string;
+  private baseUrl: string;
+
   constructor(
     @InjectRepository(FileEntity)
     private fileRepo: Repository<FileEntity>,
     @InjectRepository(UploadTokenEntity)
     private tokenRepo: Repository<UploadTokenEntity>,
+    @InjectRepository(UploadSessionEntity)
+    private sessionRepo: Repository<UploadSessionEntity>,
     private configService: ConfigService,
-  ) {}
+  ) {
+    this.uploadBaseDir = this.configService.get<string>('uploadBaseDir');
+    this.baseUrl = this.configService.get<string>('baseUrl');
+  }
 
+  /**
+   * POST /upload/check — 客户端算好 hash，查重秒传
+   */
+  async checkFile(hash: string, filename: string, size: number) {
+    if (!hash || !filename || !size) {
+      throw new BadRequestException('缺少必要参数：hash、filename、size');
+    }
+
+    const existing = await this.fileRepo.findOne({ where: { hash } });
+
+    if (existing) {
+      return {
+        exists: true,
+        duplicated: true,
+        fileName: existing.fileName,
+        relativePath: existing.relativePath,
+        fullUrl: existing.fullUrl,
+        size: existing.size,
+        hash: existing.hash,
+      };
+    }
+
+    return { exists: false };
+  }
+
+  /**
+   * POST /upload — 小文件直接上传（保留原有逻辑）
+   */
   async handleUpload(
     buffer: Buffer,
     originalName: string,
     mimeType: string,
     size: number,
+    clientHash?: string,
     token?: UploadTokenEntity,
   ) {
-    // 1. Compute SHA256 hash
+    const { computeBufferHash } = require('../../common/utils/file-hash.util');
     const hash = computeBufferHash(buffer);
 
-    // 2. Check for duplicate
-    const existing = await this.fileRepo.findOne({
-      where: { hash },
-    });
+    // 如果前端传了 hash，校验一致性
+    if (clientHash && clientHash !== hash) {
+      throw new BadRequestException('文件哈希校验失败，文件可能已损坏');
+    }
 
+    // 查重
+    const existing = await this.fileRepo.findOne({ where: { hash } });
     if (existing) {
       return {
         duplicated: true,
@@ -46,27 +85,250 @@ export class UploadService {
       };
     }
 
-    // 3. Save file to disk
+    // 保存文件
+    const result = await this.saveFileToDisk(buffer, originalName, mimeType, size, hash, token);
+    return { duplicated: false, ...result };
+  }
+
+  /**
+   * POST /upload/chunk — 切片上传
+   */
+  async uploadChunk(
+    chunkBuffer: Buffer,
+    uploadId: string,
+    chunkIndex: number,
+    token?: UploadTokenEntity,
+  ) {
+    // 查找或创建 session
+    let session = await this.sessionRepo.findOne({ where: { uploadId } });
+
+    if (!session) {
+      throw new NotFoundException('上传会话不存在，请先调用 /upload/check 创建');
+    }
+
+    if (session.status !== 'uploading') {
+      throw new BadRequestException('该上传会话已完成或已过期');
+    }
+
+    if (chunkIndex < 0 || chunkIndex >= session.totalChunks) {
+      throw new BadRequestException(`切片索引无效，有效范围：0-${session.totalChunks - 1}`);
+    }
+
+    // 保存切片到临时目录
+    const chunkDir = path.join(this.uploadBaseDir, '.chunks', uploadId);
+    if (!fs.existsSync(chunkDir)) {
+      fs.mkdirSync(chunkDir, { recursive: true });
+    }
+
+    const chunkPath = path.join(chunkDir, String(chunkIndex));
+    fs.writeFileSync(chunkPath, chunkBuffer);
+
+    // 记录已上传切片
+    if (!session.uploadedChunks.includes(chunkIndex)) {
+      session.uploadedChunks.push(chunkIndex);
+      session.uploadedChunks.sort((a, b) => a - b);
+    }
+    await this.sessionRepo.save(session);
+
+    return {
+      uploadId: session.uploadId,
+      chunkIndex,
+      uploadedChunks: session.uploadedChunks,
+      totalChunks: session.totalChunks,
+    };
+  }
+
+  /**
+   * POST /upload/merge — 合并切片
+   */
+  async mergeChunks(
+    uploadId: string,
+    filename: string,
+    hash: string,
+    totalChunks: number,
+    token?: UploadTokenEntity,
+  ) {
+    const session = await this.sessionRepo.findOne({ where: { uploadId } });
+
+    if (!session) {
+      throw new NotFoundException('上传会话不存在');
+    }
+
+    if (session.uploadedChunks.length !== totalChunks) {
+      throw new BadRequestException(
+        `切片不完整：已上传 ${session.uploadedChunks.length}/${totalChunks} 个切片`,
+      );
+    }
+
+    const chunkDir = path.join(this.uploadBaseDir, '.chunks', uploadId);
+
+    // 查重
+    const existing = await this.fileRepo.findOne({ where: { hash } });
+    if (existing) {
+      // 清理临时切片
+      this.cleanupChunks(chunkDir);
+      session.status = 'merged';
+      await this.sessionRepo.save(session);
+
+      return {
+        duplicated: true,
+        fileName: existing.fileName,
+        relativePath: existing.relativePath,
+        fullUrl: existing.fullUrl,
+        size: existing.size,
+        hash: existing.hash,
+      };
+    }
+
+    // 合并切片
     const datePath = getDatePath();
-    const ext = path.extname(originalName).toLowerCase();
+    const ext = path.extname(filename).toLowerCase();
     const fileName = `${uuidv4()}${ext}`;
     const relativePath = `uploads/${datePath}/${fileName}`;
-    const uploadBaseDir = this.configService.get<string>('uploadBaseDir');
-    const fullDirPath = path.join(uploadBaseDir, datePath);
+    const fullDirPath = path.join(this.uploadBaseDir, datePath);
 
-    // Auto create directory
     if (!fs.existsSync(fullDirPath)) {
       fs.mkdirSync(fullDirPath, { recursive: true });
     }
 
-    const fullPath = path.join(uploadBaseDir, datePath, fileName);
+    const fullPath = path.join(this.uploadBaseDir, datePath, fileName);
+    const writeStream = fs.createWriteStream(fullPath);
+
+    for (let i = 0; i < totalChunks; i++) {
+      const chunkPath = path.join(chunkDir, String(i));
+      const chunkData = fs.readFileSync(chunkPath);
+      writeStream.write(chunkData);
+    }
+    writeStream.end();
+
+    // 等待写入完成
+    await new Promise<void>((resolve, reject) => {
+      writeStream.on('finish', resolve);
+      writeStream.on('error', reject);
+    });
+
+    // 验证合并后的 hash
+    const { computeFileHash } = require('../../common/utils/file-hash.util');
+    const actualHash = await computeFileHash(fullPath);
+    if (hash && actualHash !== hash) {
+      fs.unlinkSync(fullPath);
+      throw new BadRequestException('文件合并后哈希校验失败，请重新上传');
+    }
+
+    const fullUrl = `${this.baseUrl}/${relativePath}`;
+
+    // 入库
+    const fileRecord = this.fileRepo.create({
+      originalName: filename,
+      fileName,
+      relativePath,
+      fullUrl,
+      hash: actualHash,
+      hashAlgorithm: 'sha256',
+      mimeType: session.mimeType || 'application/octet-stream',
+      size: session.fileSize,
+      tokenId: token?.id || session.tokenId || null,
+      tokenName: token?.name || null,
+    });
+    await this.fileRepo.save(fileRecord);
+
+    // 清理
+    this.cleanupChunks(chunkDir);
+    session.status = 'merged';
+    await this.sessionRepo.save(session);
+
+    return {
+      duplicated: false,
+      fileName,
+      relativePath,
+      fullUrl,
+      size: session.fileSize,
+      hash: actualHash,
+    };
+  }
+
+  /**
+   * GET /upload/progress/:uploadId — 断点续传查询
+   */
+  async getProgress(uploadId: string) {
+    const session = await this.sessionRepo.findOne({ where: { uploadId } });
+
+    if (!session) {
+      throw new NotFoundException('上传会话不存在');
+    }
+
+    return {
+      uploadId: session.uploadId,
+      uploadedChunks: session.uploadedChunks,
+      totalChunks: session.totalChunks,
+      status: session.status,
+      originalName: session.originalName,
+      fileSize: session.fileSize,
+    };
+  }
+
+  /**
+   * 创建切片上传会话（check 接口在文件不存在时调用）
+   */
+  async createSession(
+    hash: string,
+    filename: string,
+    size: number,
+    chunkSize: number,
+    mimeType: string,
+    token?: UploadTokenEntity,
+  ) {
+    const totalChunks = Math.ceil(size / chunkSize);
+    const uploadId = uuidv4().replace(/-/g, '');
+
+    const session = this.sessionRepo.create({
+      uploadId,
+      fileHash: hash,
+      originalName: filename,
+      fileSize: size,
+      chunkSize,
+      totalChunks,
+      uploadedChunks: [],
+      mimeType,
+      tokenId: token?.id || null,
+      status: 'uploading',
+    });
+
+    await this.sessionRepo.save(session);
+
+    return {
+      uploadId,
+      chunkSize,
+      totalChunks,
+    };
+  }
+
+  /**
+   * 保存文件到磁盘并入库
+   */
+  private async saveFileToDisk(
+    buffer: Buffer,
+    originalName: string,
+    mimeType: string,
+    size: number,
+    hash: string,
+    token?: UploadTokenEntity,
+  ) {
+    const datePath = getDatePath();
+    const ext = path.extname(originalName).toLowerCase();
+    const fileName = `${uuidv4()}${ext}`;
+    const relativePath = `uploads/${datePath}/${fileName}`;
+    const fullDirPath = path.join(this.uploadBaseDir, datePath);
+
+    if (!fs.existsSync(fullDirPath)) {
+      fs.mkdirSync(fullDirPath, { recursive: true });
+    }
+
+    const fullPath = path.join(this.uploadBaseDir, datePath, fileName);
     fs.writeFileSync(fullPath, buffer);
 
-    // 4. Build full URL
-    const baseUrl = this.configService.get<string>('baseUrl');
-    const fullUrl = `${baseUrl}/${relativePath}`;
+    const fullUrl = `${this.baseUrl}/${relativePath}`;
 
-    // 5. Save to database
     const fileRecord = this.fileRepo.create({
       originalName,
       fileName,
@@ -82,13 +344,15 @@ export class UploadService {
 
     await this.fileRepo.save(fileRecord);
 
-    return {
-      duplicated: false,
-      fileName,
-      relativePath,
-      fullUrl,
-      size,
-      hash,
-    };
+    return { fileName, relativePath, fullUrl, size, hash };
+  }
+
+  /**
+   * 清理临时切片目录
+   */
+  private cleanupChunks(chunkDir: string) {
+    if (fs.existsSync(chunkDir)) {
+      fs.rmSync(chunkDir, { recursive: true, force: true });
+    }
   }
 }

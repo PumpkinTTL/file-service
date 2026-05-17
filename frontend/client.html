@@ -52,6 +52,14 @@
     .progress-fill { height: 100%; background: linear-gradient(90deg, #2563EB, #3B82F6); border-radius: 3px; transition: width 0.3s ease; }
     .progress-text { font-size: 12px; color: #64748B; margin-top: 6px; text-align: right; }
 
+    /* Status indicator (hashing / checking / merging) */
+    .status-indicator { display: flex; align-items: center; gap: 10px; margin-top: 16px; padding: 12px 16px; background: #EFF6FF; border-radius: 10px; font-size: 13px; font-weight: 500; color: #2563EB; }
+    .status-dot { width: 8px; height: 8px; background: #2563EB; border-radius: 50%; flex-shrink: 0; animation: pulse 1.4s ease-in-out infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.25); } }
+
+    .chunk-info { font-size: 12px; color: #64748B; margin-top: 6px; text-align: right; }
+    .hash-progress { font-size: 12px; color: #64748B; margin-top: 2px; }
+
     /* Result */
     .result-card { border-left: 3px solid #2563EB; }
     .result-grid { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; font-size: 14px; }
@@ -111,19 +119,46 @@
           <p v-else class="file-info">{{ selectedFile.name }} <span style="color:#64748B;font-weight:400">({{ formatSize(selectedFile.size) }})</span></p>
           <input type="file" ref="fileInput" style="display:none" @change="handleSelect" />
         </div>
-        <button class="btn-upload" @click="upload" :disabled="!token || !selectedFile || uploading">
-          {{ uploading ? '上传中...' : '开始上传' }}
+        <button class="btn-upload" :disabled="!token || !selectedFile || uploading" @click="upload">
+          {{ uploadButtonText }}
         </button>
-        <div v-if="uploading" class="progress">
+
+        <!-- Hash 计算中 -->
+        <div v-if="status === 'hashing'" class="status-indicator">
+          <span class="status-dot"></span>
+          <span>正在计算文件指纹... <span v-if="hashProgress > 0" class="hash-progress">({{ hashProgress }}%)</span></span>
+        </div>
+
+        <!-- 检查中 -->
+        <div v-if="status === 'checking'" class="status-indicator">
+          <span class="status-dot"></span>
+          <span>正在检查文件...</span>
+        </div>
+
+        <!-- 上传中 - direct -->
+        <div v-if="status === 'uploading' && uploadMode === 'direct'" class="progress">
           <div class="progress-bar"><div class="progress-fill" :style="{ width: progress + '%' }"></div></div>
           <div class="progress-text">{{ progress }}%</div>
+        </div>
+
+        <!-- 上传中 - chunked -->
+        <div v-if="status === 'uploading' && uploadMode === 'chunked'" class="progress">
+          <div class="progress-bar"><div class="progress-fill" :style="{ width: progress + '%' }"></div></div>
+          <div class="progress-text">{{ progress }}%</div>
+          <div class="chunk-info">{{ chunkProgress.uploaded }}/{{ chunkProgress.total }} 切片已完成</div>
+        </div>
+
+        <!-- 合并中 -->
+        <div v-if="status === 'merging'" class="status-indicator">
+          <span class="status-dot"></span>
+          <span>正在合并切片...</span>
         </div>
       </div>
 
       <div v-if="result" class="card result-card">
         <div class="card-title">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-          上传成功
+          {{ resultHeading }}
           <span class="badge" :class="result.duplicated ? 'badge-dup' : 'badge-new'">
             <svg v-if="result.duplicated" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
             <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -147,33 +182,347 @@
     </div>
   </div>
   <script>
-    const { createApp, ref } = Vue;
+    const { createApp, ref, computed } = Vue;
+
+    // ====== 内联 Web Worker (Blob URL) ======
+    var WORKER_URL = URL.createObjectURL(new Blob([[
+      'self.onmessage = async function(e) {',
+      '  var file = e.data;',
+      '  var CHUNK_SIZE = 4 * 1024 * 1024;',
+      '  var totalBytes = file.size;',
+      '  var chunks = Math.ceil(totalBytes / CHUNK_SIZE);',
+      '  var combined = new Uint8Array(totalBytes);',
+      '  var offset = 0;',
+      '  try {',
+      '    for (var i = 0; i < chunks; i++) {',
+      '      var start = i * CHUNK_SIZE;',
+      '      var end = Math.min(start + CHUNK_SIZE, totalBytes);',
+      '      var slice = file.slice(start, end);',
+      '      var buf = await slice.arrayBuffer();',
+      '      combined.set(new Uint8Array(buf), offset);',
+      '      offset += buf.byteLength;',
+      '      self.postMessage({ type: "progress", loaded: offset, total: totalBytes });',
+      '    }',
+      '    var hashBuffer = await crypto.subtle.digest("SHA-256", combined.buffer);',
+      '    var hashArray = Array.from(new Uint8Array(hashBuffer));',
+      '    var hashHex = hashArray.map(function(b) { return b.toString(16).padStart(2, "0"); }).join("");',
+      '    self.postMessage({ type: "complete", hash: hashHex });',
+      '  } catch (err) {',
+      '    self.postMessage({ type: "error", message: err.message });',
+      '  }',
+      '};'
+    ].join('\n')], { type: 'application/javascript' }));
+
+    // ====== 常量 ======
+    var CHUNK_SIZE = 2 * 1024 * 1024;       // 2MB
+    var CONCURRENCY = 3;                     // 并发数
+    var MAX_RETRIES = 3;                     // 切片上传最大重试
+    var DIRECT_UPLOAD_LIMIT = 10 * 1024 * 1024; // 10MB
+
     createApp({
-      setup() {
-        const token = ref('');
-        const selectedFile = ref(null);
-        const uploading = ref(false);
-        const progress = ref(0);
-        const isDragover = ref(false);
-        const result = ref(null);
-        const formatSize = (bytes) => { if (!bytes) return '0 B'; const u = ['B','KB','MB','GB']; let i = 0, s = bytes; while (s >= 1024 && i < u.length - 1) { s /= 1024; i++; } return s.toFixed(2) + ' ' + u[i]; };
-        const handleSelect = (e) => { selectedFile.value = e.target.files[0]; };
-        const handleDrop = (e) => { isDragover.value = false; selectedFile.value = e.dataTransfer.files[0]; };
-        const upload = async () => {
-          if (!token.value || !selectedFile.value) return;
-          uploading.value = true; progress.value = 0; result.value = null;
-          const formData = new FormData(); formData.append('file', selectedFile.value);
-          try {
-            const res = await axios.post('/upload', formData, {
-              headers: { 'x-upload-token': token.value, 'Content-Type': 'multipart/form-data' },
-              onUploadProgress: (e) => { progress.value = Math.round((e.loaded / e.total) * 100); },
-            });
-            result.value = res.data.data || res.data;
-          } catch (e) { alert(e.response?.data?.message || '上传失败'); }
-          finally { uploading.value = false; }
+      setup: function() {
+        var token = ref('');
+        var selectedFile = ref(null);
+        var uploading = ref(false);
+        var progress = ref(0);
+        var isDragover = ref(false);
+        var result = ref(null);
+
+        // 新增状态
+        var status = ref('idle');        // idle | hashing | checking | uploading | merging | success
+        var fileHash = ref('');
+        var uploadMode = ref('');        // '' | 'direct' | 'chunked' | 'duplicate'
+        var chunkProgress = ref({ uploaded: 0, total: 0 });
+        var hashProgress = ref(0);
+
+        var formatSize = function(bytes) {
+          if (!bytes) return '0 B';
+          var u = ['B','KB','MB','GB'];
+          var i = 0, s = bytes;
+          while (s >= 1024 && i < u.length - 1) { s /= 1024; i++; }
+          return s.toFixed(2) + ' ' + u[i];
         };
-        const copy = (text) => { navigator.clipboard.writeText(text).then(() => alert('已复制到剪贴板')); };
-        return { token, selectedFile, uploading, progress, isDragover, result, handleSelect, handleDrop, upload, copy, formatSize };
+
+        var resetUploadState = function() {
+          status.value = 'idle';
+          uploading.value = false;
+          progress.value = 0;
+          result.value = null;
+          fileHash.value = '';
+          uploadMode.value = '';
+          chunkProgress.value = { uploaded: 0, total: 0 };
+          hashProgress.value = 0;
+        };
+
+        var handleSelect = function(e) {
+          if (uploading.value) return;
+          selectedFile.value = e.target.files[0];
+          resetUploadState();
+        };
+
+        var handleDrop = function(e) {
+          isDragover.value = false;
+          if (uploading.value) return;
+          selectedFile.value = e.dataTransfer.files[0];
+          resetUploadState();
+        };
+
+        // SHA256 计算（Web Worker）
+        var computeFileHash = function(file) {
+          return new Promise(function(resolve, reject) {
+            if (!crypto || !crypto.subtle || !crypto.subtle.digest) {
+              reject(new Error('当前浏览器不支持 SHA-256 计算'));
+              return;
+            }
+            if (file.size > 2 * 1024 * 1024 * 1024) {
+              reject(new Error('文件过大，暂不支持超过 2GB 的文件'));
+              return;
+            }
+            var worker = new Worker(WORKER_URL);
+            worker.onmessage = function(e) {
+              if (e.data.type === 'progress') {
+                hashProgress.value = Math.round((e.data.loaded / e.data.total) * 100);
+              } else if (e.data.type === 'complete') {
+                worker.terminate();
+                resolve(e.data.hash);
+              } else if (e.data.type === 'error') {
+                worker.terminate();
+                reject(new Error(e.data.message || '哈希计算失败'));
+              }
+            };
+            worker.onerror = function() {
+              worker.terminate();
+              reject(new Error('文件读取失败'));
+            };
+            worker.postMessage(file);
+          });
+        };
+
+        // 小文件直接上传
+        var directUpload = async function(file) {
+          status.value = 'uploading';
+          uploadMode.value = 'direct';
+          var formData = new FormData();
+          formData.append('file', file);
+          var res = await axios.post('/upload', formData, {
+            headers: { 'x-upload-token': token.value, 'Content-Type': 'multipart/form-data' },
+            onUploadProgress: function(e) {
+              progress.value = Math.round((e.loaded / e.total) * 100);
+            },
+          });
+          result.value = res.data.data || res.data;
+        };
+
+        // 单切片上传（含重试）
+        var uploadSingleChunk = async function(file, chunkIndex, currentUploadId, retriesLeft) {
+          if (retriesLeft === undefined) retriesLeft = MAX_RETRIES;
+          var start = chunkIndex * CHUNK_SIZE;
+          var end = Math.min(start + CHUNK_SIZE, file.size);
+          var blob = file.slice(start, end);
+          var fd = new FormData();
+          fd.append('file', blob);
+          fd.append('uploadId', currentUploadId);
+          fd.append('chunkIndex', chunkIndex);
+          try {
+            await axios.post('/upload/chunk', fd, {
+              headers: { 'x-upload-token': token.value, 'Content-Type': 'multipart/form-data' },
+            });
+            chunkProgress.value.uploaded++;
+            progress.value = Math.round((chunkProgress.value.uploaded / chunkProgress.value.total) * 100);
+          } catch (e) {
+            if (retriesLeft > 0) {
+              return uploadSingleChunk(file, chunkIndex, currentUploadId, retriesLeft - 1);
+            }
+            throw e;
+          }
+        };
+
+        // 切片上传
+        var chunkedUpload = async function(file, hash, checkData) {
+          status.value = 'uploading';
+          uploadMode.value = 'chunked';
+          var totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+          chunkProgress.value = { uploaded: 0, total: totalChunks };
+
+          // 用 check 接口返回的 uploadId
+          var serverUploadId = checkData ? checkData.uploadId : null;
+
+          // 断点续传：检查 localStorage
+          var currentUploadId = localStorage.getItem('upload_progress_' + hash);
+          var uploadedChunks = {};
+          if (currentUploadId) {
+            try {
+              var progressRes = await axios.get('/upload/progress/' + currentUploadId, {
+                headers: { 'x-upload-token': token.value }
+              });
+              var data = progressRes.data.data;
+              if (data && data.uploadedChunks) {
+                for (var k = 0; k < data.uploadedChunks.length; k++) {
+                  uploadedChunks[data.uploadedChunks[k]] = true;
+                }
+                chunkProgress.value.uploaded = data.uploadedChunks.length;
+              }
+            } catch (e) {
+              localStorage.removeItem('upload_progress_' + hash);
+              currentUploadId = null;
+            }
+          }
+
+          // 优先用 localStorage 缓存的（断点续传），否则用服务端返回的
+          if (!currentUploadId) {
+            currentUploadId = serverUploadId;
+            if (currentUploadId) {
+              localStorage.setItem('upload_progress_' + hash, currentUploadId);
+            }
+          }
+
+          // 构建待上传切片列表
+          var pending = [];
+          for (var i = 0; i < totalChunks; i++) {
+            if (!uploadedChunks[i]) {
+              pending.push(i);
+            }
+          }
+
+          // 并发控制
+          var queue = pending.slice();
+          var workers = [];
+          var workerFn = async function() {
+            while (queue.length > 0) {
+              var idx = queue.shift();
+              await uploadSingleChunk(file, idx, currentUploadId, MAX_RETRIES);
+            }
+          };
+          for (var w = 0; w < CONCURRENCY; w++) {
+            workers.push(workerFn());
+          }
+          await Promise.all(workers);
+
+          // 合并
+          status.value = 'merging';
+          var mergeRes = await axios.post('/upload/merge', {
+            uploadId: currentUploadId,
+            filename: file.name,
+            hash: hash,
+            totalChunks: totalChunks
+          }, {
+            headers: { 'x-upload-token': token.value }
+          });
+
+          result.value = mergeRes.data.data;
+          localStorage.removeItem('upload_progress_' + hash);
+        };
+
+        // 主上传流程
+        var upload = async function() {
+          if (!token.value || !selectedFile.value || uploading.value) return;
+          resetUploadState();
+          uploading.value = true;
+          var file = selectedFile.value;
+
+          if (!crypto || !crypto.subtle || !crypto.subtle.digest) {
+            alert('当前浏览器不支持 SHA-256 计算，请使用现代浏览器');
+            uploading.value = false;
+            return;
+          }
+          if (file.size > 2 * 1024 * 1024 * 1024) {
+            alert('文件过大，暂不支持超过 2GB 的文件');
+            uploading.value = false;
+            return;
+          }
+
+          try {
+            // Step 1: 计算 SHA256
+            status.value = 'hashing';
+            var hash = await computeFileHash(file);
+            fileHash.value = hash;
+
+            // Step 2: 查重秒传
+            status.value = 'checking';
+            var checkRes = await axios.post('/upload/check', {
+              hash: hash,
+              filename: file.name,
+              size: file.size
+            }, {
+              headers: { 'x-upload-token': token.value }
+            });
+
+            var checkData = checkRes.data && checkRes.data.data;
+            if (checkData && checkData.exists) {
+              status.value = 'success';
+              uploadMode.value = 'duplicate';
+              result.value = checkData;
+              return;
+            }
+
+            // Step 3: 上传
+            if (file.size <= DIRECT_UPLOAD_LIMIT) {
+              await directUpload(file);
+            } else {
+              await chunkedUpload(file, hash, checkData);
+            }
+
+            status.value = 'success';
+          } catch (e) {
+            var msg = (e.response && e.response.data && e.response.data.message) || e.message || '未知错误';
+            if (e.response && e.response.status === 401) {
+              alert('Token 无效或已过期，请重新输入');
+            } else if (status.value === 'hashing') {
+              alert('文件指纹计算失败，请重试');
+            } else {
+              alert(msg);
+            }
+          } finally {
+            uploading.value = false;
+          }
+        };
+
+        // 复制
+        var copy = function(text) {
+          navigator.clipboard.writeText(text).then(function() {
+            alert('已复制到剪贴板');
+          });
+        };
+
+        // 按钮文本
+        var uploadButtonText = computed(function() {
+          switch (status.value) {
+            case 'hashing': return '正在计算文件指纹...';
+            case 'checking': return '正在检查...';
+            case 'uploading':
+              if (uploadMode.value === 'direct') return '正在上传 ' + progress.value + '%';
+              return '正在上传 ' + chunkProgress.value.uploaded + '/' + chunkProgress.value.total;
+            case 'merging': return '正在合并切片...';
+            default: return '开始上传';
+          }
+        });
+
+        // 结果标题
+        var resultHeading = computed(function() {
+          if (result.value && result.value.duplicated) return '秒传成功';
+          return '上传成功';
+        });
+
+        return {
+          token: token,
+          selectedFile: selectedFile,
+          uploading: uploading,
+          progress: progress,
+          isDragover: isDragover,
+          result: result,
+          status: status,
+          fileHash: fileHash,
+          uploadMode: uploadMode,
+          chunkProgress: chunkProgress,
+          hashProgress: hashProgress,
+          formatSize: formatSize,
+          handleSelect: handleSelect,
+          handleDrop: handleDrop,
+          upload: upload,
+          copy: copy,
+          uploadButtonText: uploadButtonText,
+          resultHeading: resultHeading
+        };
       },
     }).mount('#app');
   </script>

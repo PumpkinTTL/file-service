@@ -8,6 +8,7 @@ import { AdminFilesModule } from './modules/admin-files/admin-files.module';
 import { AdminTokensModule } from './modules/admin-tokens/admin-tokens.module';
 import { FileEntity } from './entities/file.entity';
 import { UploadTokenEntity } from './entities/upload-token.entity';
+import { UploadSessionEntity } from './entities/upload-session.entity';
 import * as path from 'path';
 
 @Module({
@@ -27,7 +28,7 @@ import * as path from 'path';
         type: 'sqljs',
         location: configService.get<string>('databasePath'),
         autoSave: true,
-        entities: [FileEntity, UploadTokenEntity],
+        entities: [FileEntity, UploadTokenEntity, UploadSessionEntity],
         synchronize: true,
         logging: false,
       }),
