@@ -954,11 +954,14 @@
           fd.append('file', blob);
           try {
               console.log('上传切片', chunkIndex, 'uploadId', currentUploadId);
-              await axios.post('/upload/chunk', fd, {
+              var res = await axios.post('/upload/chunk', fd, {
                 headers: { 'x-upload-token': token.value },
                 timeout: 120000,
               });
               console.log('切片', chunkIndex, '上传成功');
+              // 用 chunk 响应驱动进度，不轮询
+              chunkProgress.value.uploaded++;
+              progress.value = Math.round((chunkProgress.value.uploaded / chunkProgress.value.total) * 100);
             } catch (e) {
             console.warn('切片', chunkIndex, '上传失败', e.message, e.response?.data);
             if (retriesLeft > 0) {
@@ -1021,37 +1024,30 @@
           paused.value = false;
           shouldPause.value = false;
 
-          // ====== 进度轮询：完全依赖后端数据，不依赖前端计数 ======
-          var pollTimer = null;
-          var startProgressPoll = function() {
-            if (pollTimer) clearInterval(pollTimer);
-            pollTimer = setInterval(async function() {
-              if (!currentUploadId) return;
-              try {
-                var _r = await axios.get('/upload/progress/' + currentUploadId, {
-                  headers: { 'x-upload-token': token.value }
-                });
-                var _d = _r.data && _r.data.data;
-                if (_d && _d.uploadedChunks) {
-                  chunkProgress.value.uploaded = _d.uploadedChunks.length;
-                  progress.value = Math.round((_d.uploadedChunks.length / chunkProgress.value.total) * 100);
-                }
-              } catch (_e) { /* 轮询失败不影响上传 */ }
-            }, 2000);
-          };
-          var stopProgressPoll = function() {
-            if (pollTimer) {
-              clearInterval(pollTimer);
-              pollTimer = null;
-            }
-          };
-
-          startProgressPoll();
+          // 断点续传时初始化本地进度
+          chunkProgress.value.uploaded = resumeInfo.value ? chunkProgress.value.uploaded : 0;
 
           try {
             // ====== 上传循环：不限轮数，直到全部完成 ======
             var allUploaded = false;
             var serialMode = false; // 是否降级为串行上传
+            var uploadedSet = new Set(); // 本地跟踪已上传切片
+
+            // 断点续传：从 progress 接口恢复已上传集合
+            if (currentUploadId && resumeInfo.value) {
+              try {
+                var resumeRes = await axios.get('/upload/progress/' + currentUploadId, {
+                  headers: { 'x-upload-token': token.value }
+                });
+                var resumeChunks = resumeRes.data && resumeRes.data.data && resumeRes.data.data.uploadedChunks;
+                if (resumeChunks && resumeChunks.length > 0) {
+                  resumeChunks.forEach(function(idx) { uploadedSet.add(idx); });
+                  chunkProgress.value.uploaded = resumeChunks.length;
+                  progress.value = Math.round((resumeChunks.length / totalChunks) * 100);
+                }
+              } catch (_e) { /* 恢复失败，从头开始 */ }
+            }
+
             while (!allUploaded) {
               // 检查暂停状态
               while (paused.value) {
@@ -1064,22 +1060,13 @@
                 });
               }
 
-              // 查询后端真实进度
-              var checkRes = await axios.get('/upload/progress/' + currentUploadId, {
-                headers: { 'x-upload-token': token.value }
-              });
-              var uploadedIndices = checkRes.data.data.uploadedChunks || [];
-
-              // 构建待上传切片列表
+              // 构建待上传切片列表（从本地集合）
               var pending = [];
               for (var i = 0; i < totalChunks; i++) {
-                if (!uploadedIndices.includes(i)) {
+                if (!uploadedSet.has(i)) {
                   pending.push(i);
                 }
               }
-
-              chunkProgress.value.uploaded = uploadedIndices.length;
-              progress.value = Math.round((uploadedIndices.length / totalChunks) * 100);
 
               if (pending.length === 0) {
                 allUploaded = true;
@@ -1093,6 +1080,7 @@
                   if (paused.value) break;
                   try {
                     await uploadSingleChunk(file, pending[si], currentUploadId, MAX_RETRIES * 3, chunkSize);
+                    uploadedSet.add(pending[si]);
                   } catch (e) {
                     // 串行也失败，下轮循环重新上传
                   }
@@ -1107,6 +1095,7 @@
                     var idx = queue.shift();
                     try {
                       await uploadSingleChunk(file, idx, currentUploadId, MAX_RETRIES, chunkSize);
+                      uploadedSet.add(idx);
                     } catch (e) {
                       queue.push(idx);
                     }
@@ -1118,8 +1107,6 @@
                 await Promise.all(workers);
               }
             }
-            // 停止轮询
-            stopProgressPoll();
 
             // 合并
             status.value = 'merging';
@@ -1136,7 +1123,6 @@
             localStorage.removeItem('upload_progress_' + hash);
             resumeInfo.value = '';
           } catch (e) {
-            stopProgressPoll();
             throw e;
           };
         };
