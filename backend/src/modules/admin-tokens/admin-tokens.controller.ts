@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { AdminTokensService } from './admin-tokens.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { CreateTokenDto, UpdateTokenDto } from './dto/token.dto';
+import { CreateTokenDto } from './dto/token.dto';
 
 @Controller('admin/tokens')
 @UseGuards(JwtAuthGuard)

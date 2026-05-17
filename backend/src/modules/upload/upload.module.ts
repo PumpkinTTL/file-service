@@ -11,6 +11,5 @@ import { UploadTokenGuard } from '../../common/guards/upload-token.guard';
   imports: [TypeOrmModule.forFeature([FileEntity, UploadTokenEntity, UploadSessionEntity])],
   controllers: [UploadController],
   providers: [UploadService, UploadTokenGuard],
-  exports: [UploadService],
 })
 export class UploadModule {}

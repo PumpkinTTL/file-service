@@ -12,13 +12,3 @@ export class CreateTokenDto {
   @IsString()
   expiresAt?: string;
 }
-
-export class UpdateTokenDto {
-  @IsOptional()
-  @IsString()
-  name?: string;
-
-  @IsOptional()
-  @IsString()
-  description?: string;
-}
