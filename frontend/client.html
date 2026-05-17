@@ -244,7 +244,7 @@
 
     createApp({
       setup: function() {
-        var token = ref('');
+        var token = ref('fs_0a51162cc36a00bdab26209db007ad95fa74b3fa7988b71395906374c6a88774');
         var selectedFile = ref(null);
         var uploading = ref(false);
         var progress = ref(0);
@@ -357,7 +357,7 @@
               console.log('上传切片', chunkIndex, 'uploadId', currentUploadId);
               await axios.post('/upload/chunk', fd, {
                 headers: { 'x-upload-token': token.value },
-                timeout: 10000,
+                timeout: 120000,
               });
               console.log('切片', chunkIndex, '上传成功');
             } catch (e) {
@@ -413,9 +413,9 @@
           // 确定切片大小：续传用服务端记录的，新上传用 check 返回的，兜底用前端常量
           var chunkSize = CHUNK_SIZE;
           if (currentUploadId && data && data.chunkSize) {
-            chunkSize = data.chunkSize;
+            chunkSize = Number(data.chunkSize);
           } else if (checkData && checkData.chunkSize) {
-            chunkSize = checkData.chunkSize;
+            chunkSize = Number(checkData.chunkSize);
           }
           var totalChunks = Math.ceil(file.size / chunkSize);
           chunkProgress.value = { uploaded: 0, total: totalChunks };
