@@ -806,28 +806,62 @@
   <script>
     const { createApp, ref, computed } = Vue;
 
-    // ====== 内联 Web Worker (Blob URL) ======
+    // ====== 内联 Web Worker (Blob URL) - 流式 SHA-256 ======
     var WORKER_URL = URL.createObjectURL(new Blob([[
       'self.onmessage = async function(e) {',
       '  var file = e.data;',
       '  var CHUNK_SIZE = 4 * 1024 * 1024;',
       '  var totalBytes = file.size;',
       '  var chunks = Math.ceil(totalBytes / CHUNK_SIZE);',
-      '  var combined = new Uint8Array(totalBytes);',
       '  var offset = 0;',
       '  try {',
+      // Minimal SHA-256 implementation
+      '    var K = new Uint32Array([0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2]);',
+      '    var h0=0x6a09e667,h1=0xbb67ae85,h2=0x3c6ef372,h3=0xa54ff53a,h4=0x510e527f,h5=0x9b05688c,h6=0x1f83d9ab,h7=0x5be0cd19;',
+      '    var totalLen = 0;',
+      '    var pending = new Uint8Array(0);',
+      '    function processChunk(data) {',
+      '      var combined = new Uint8Array(pending.length + data.length);',
+      '      combined.set(pending);',
+      '      combined.set(data, pending.length);',
+      '      var len = combined.length;',
+      '      var nBlocks = Math.floor(len / 64);',
+      '      for (var b = 0; b < nBlocks; b++) {',
+      '        var w = new Uint32Array(64);',
+      '        for (var i = 0; i < 16; i++) w[i] = combined[b*64+i*4]<<24|combined[b*64+i*4+1]<<16|combined[b*64+i*4+2]<<8|combined[b*64+i*4+3];',
+      '        for (var i = 16; i < 64; i++) { var s0 = ((w[i-15]>>>7)|(w[i-15]<<25))^((w[i-15]>>>18)|(w[i-15]<<14))^(w[i-15]>>>3); var s1 = ((w[i-2]>>>17)|(w[i-2]<<15))^((w[i-2]>>>19)|(w[i-2]<<13))^(w[i-2]>>>10); w[i] = (w[i-16]+s0+w[i-7]+s1)|0; }',
+      '        var a=h0,b=h1,c=h2,d=h3,e=h4,f=h5,g=h6,h=h7;',
+      '        for (var i = 0; i < 64; i++) { var S1 = ((e>>>6)|(e<<26))^((e>>>11)|(e<<21))^((e>>>25)|(e<<7)); var ch = (e&f)^(~e&g); var temp1 = (h+S1+ch+K[i]+w[i])|0; var S0 = ((a>>>2)|(a<<30))^((a>>>13)|(a<<19))^((a>>>22)|(a<<10)); var maj = (a&b)^(a&c)^(b&c); var temp2 = (S0+maj)|0; h=g;g=f;f=e;e=(d+temp1)|0;d=c;c=b;b=a;a=(temp1+temp2)|0; }',
+      '        h0=(h0+a)|0;h1=(h1+b)|0;h2=(h2+c)|0;h3=(h3+d)|0;h4=(h4+e)|0;h5=(h5+f)|0;h6=(h6+g)|0;h7=(h7+h)|0;',
+      '      }',
+      '      pending = combined.slice(nBlocks * 64);',
+      '    }',
+      '    function finalize() {',
+      '      totalLen += pending.length;',
+      '      var bitLen = totalLen * 8;',
+      '      var padLen = pending.length + 9 <= 64 ? 64 : 128;',
+      '      var pad = new Uint8Array(padLen - pending.length);',
+      '      pad[0] = 0x80;',
+      '      pad[pad.length - 8] = (bitLen / 0x100000000) >>> 0;',
+      '      pad[pad.length - 7] = (bitLen >>> 28) & 0xff;',
+      '      pad[pad.length - 6] = (bitLen >>> 20) & 0xff;',
+      '      pad[pad.length - 5] = (bitLen >>> 12) & 0xff;',
+      '      pad[pad.length - 4] = (bitLen >>> 4) & 0xff;',
+      '      pad[pad.length - 3] = (bitLen & 0xf) << 4;',
+      '      processChunk(pad);',
+      '      var hex = function(n) { var s = ""; for (var i = 7; i >= 0; i--) { var b = (n >>> (i * 4)) & 0xf; s += b.toString(16); } return s; };',
+      '      return hex(h0)+hex(h1)+hex(h2)+hex(h3)+hex(h4)+hex(h5)+hex(h6)+hex(h7);',
+      '    }',
       '    for (var i = 0; i < chunks; i++) {',
       '      var start = i * CHUNK_SIZE;',
       '      var end = Math.min(start + CHUNK_SIZE, totalBytes);',
       '      var slice = file.slice(start, end);',
       '      var buf = await slice.arrayBuffer();',
-      '      combined.set(new Uint8Array(buf), offset);',
-      '      offset += buf.byteLength;',
-      '      self.postMessage({ type: "progress", loaded: offset, total: totalBytes });',
+      '      totalLen = end;',
+      '      processChunk(new Uint8Array(buf));',
+      '      self.postMessage({ type: "progress", loaded: Math.min(end, totalBytes), total: totalBytes });',
       '    }',
-      '    var hashBuffer = await crypto.subtle.digest("SHA-256", combined.buffer);',
-      '    var hashArray = Array.from(new Uint8Array(hashBuffer));',
-      '    var hashHex = hashArray.map(function(b) { return b.toString(16).padStart(2, "0"); }).join("");',
+      '    var hashHex = finalize();',
       '    self.postMessage({ type: "complete", hash: hashHex });',
       '  } catch (err) {',
       '    self.postMessage({ type: "error", message: err.message });',
@@ -858,7 +892,7 @@
         var hashProgress = ref(0);
         var paused = ref(false);          // 暂停状态
         var resumeInfo = ref('');         // 断点续传提示
-        var shouldPause = ref(false);     // 暂停标志位
+
         var chunkSizeMB = ref(5);          // 切片大小（MB），默认 5MB
 
         var formatSize = function(bytes) {
@@ -880,7 +914,6 @@
           hashProgress.value = 0;
           paused.value = false;
           resumeInfo.value = '';
-          shouldPause.value = false;
         };
 
         var handleSelect = function(e) {
@@ -962,6 +995,7 @@
             } catch (e) {
             console.warn('切片', chunkIndex, '上传失败', e.message, e.response?.data);
             if (retriesLeft > 0) {
+              await new Promise(function(r) { setTimeout(r, 1000 * (MAX_RETRIES - retriesLeft + 1)); });
               return uploadSingleChunk(file, chunkIndex, currentUploadId, retriesLeft - 1, chunkSize);
             }
             throw e;
@@ -978,7 +1012,7 @@
 
           // 断点续传：检查 localStorage
           var currentUploadId = localStorage.getItem('upload_progress_' + hash);
-          var isFirstTry = !currentUploadId;
+          var uploadedSet = new Set(); // 本地跟踪已上传切片
 
           if (currentUploadId) {
             try {
@@ -989,6 +1023,7 @@
               if (data && data.uploadedChunks) {
                 chunkProgress.value.uploaded = data.uploadedChunks.length;
                 resumeInfo.value = '检测到未完成的上传，将从第 ' + (data.uploadedChunks.length + 1) + ' 个切片继续（切片大小 ' + (data.chunkSize / 1024 / 1024) + 'MB）';
+                data.uploadedChunks.forEach(function(idx) { uploadedSet.add(idx); });
               } else {
                 localStorage.removeItem('upload_progress_' + hash);
                 currentUploadId = null;
@@ -1019,32 +1054,19 @@
           var totalChunks = Math.ceil(file.size / chunkSize);
           chunkProgress.value = { uploaded: 0, total: totalChunks };
           paused.value = false;
-          shouldPause.value = false;
 
           // 断点续传时初始化本地进度
           chunkProgress.value.uploaded = resumeInfo.value ? chunkProgress.value.uploaded : 0;
+          if (resumeInfo.value) {
+            progress.value = Math.round((uploadedSet.size / totalChunks) * 100);
+          }
 
           try {
             // ====== 上传循环：不限轮数，直到全部完成 ======
             var allUploaded = false;
             var serialMode = false; // 是否降级为串行上传
-            var uploadedSet = new Set(); // 本地跟踪已上传切片
 
-            // 断点续传：从 progress 接口恢复已上传集合
-            if (currentUploadId && resumeInfo.value) {
-              try {
-                var resumeRes = await axios.get('/upload/progress/' + currentUploadId, {
-                  headers: { 'x-upload-token': token.value }
-                });
-                var resumeChunks = resumeRes.data && resumeRes.data.data && resumeRes.data.data.uploadedChunks;
-                if (resumeChunks && resumeChunks.length > 0) {
-                  resumeChunks.forEach(function(idx) { uploadedSet.add(idx); });
-                  chunkProgress.value.uploaded = resumeChunks.length;
-                  progress.value = Math.round((resumeChunks.length / totalChunks) * 100);
-                }
-              } catch (_e) { /* 恢复失败，从头开始 */ }
-            }
-
+            var outerRetries = 0;
             while (!allUploaded) {
               // 检查暂停状态
               while (paused.value) {
@@ -1105,6 +1127,10 @@
                 }
                 await Promise.all(workers);
               }
+              outerRetries++;
+              if (outerRetries > 5) {
+                throw new Error('上传失败：多次重试仍无法完成，请稍后再试');
+              }
             }
 
             // 合并
@@ -1115,7 +1141,8 @@
               hash: hash,
               totalChunks: totalChunks
             }, {
-              headers: { 'x-upload-token': token.value }
+              headers: { 'x-upload-token': token.value },
+              timeout: 300000
             });
 
             result.value = mergeRes.data.data;
@@ -1163,7 +1190,8 @@
               size: file.size,
               chunkSize: chunkSizeMB.value * 1024 * 1024
             }, {
-              headers: { 'x-upload-token': token.value }
+              headers: { 'x-upload-token': token.value },
+              timeout: 30000
             });
 
             var checkData = checkRes.data && checkRes.data.data;
@@ -1189,6 +1217,7 @@
             } else if (status.value === 'hashing') {
               alert('文件指纹计算失败，请重试');
             } else {
+              status.value = 'idle';
               alert(msg);
             }
           } finally {
