@@ -51,7 +51,7 @@ export class UploadService {
         fileName: existing.fileName,
         relativePath: existing.relativePath,
         fullUrl: existing.fullUrl,
-        size: existing.size,
+        size: Number(existing.size),
         hash: existing.hash,
       };
     }
@@ -85,7 +85,7 @@ export class UploadService {
         fileName: existing.fileName,
         relativePath: existing.relativePath,
         fullUrl: existing.fullUrl,
-        size: existing.size,
+        size: Number(existing.size),
         hash: existing.hash,
       };
     }
@@ -189,7 +189,7 @@ export class UploadService {
           fileName: existing.fileName,
           relativePath: existing.relativePath,
           fullUrl: existing.fullUrl,
-          size: existing.size,
+          size: Number(existing.size),
           hash: existing.hash,
         };
       }
@@ -266,7 +266,7 @@ export class UploadService {
         fileName,
         relativePath,
         fullUrl,
-        size: session.fileSize,
+        size: Number(session.fileSize),
         hash: actualHash,
       };
     } catch (err) {
@@ -322,8 +322,8 @@ export class UploadService {
     if (existing) {
       return {
         uploadId: existing.uploadId,
-        chunkSize: existing.chunkSize,
-        totalChunks: existing.totalChunks,
+        chunkSize: Number(existing.chunkSize),
+        totalChunks: Number(existing.totalChunks),
       };
     }
 
