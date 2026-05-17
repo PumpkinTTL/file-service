@@ -3,7 +3,7 @@ import {
   FastifyAdapter,
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
@@ -11,6 +11,9 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { ConfigService } from '@nestjs/config';
 import multipart from '@fastify/multipart';
+import helmet from '@fastify/helmet';
+
+const logger = new Logger('Bootstrap');
 
 async function bootstrap() {
   const maxSize = 209715200; // 200MB fallback
@@ -19,11 +22,37 @@ async function bootstrap() {
     AppModule,
     new FastifyAdapter({
       bodyLimit: 200 * 1024 * 1024, // Fastify body limit 200MB
+      logger: {
+        level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+        transport:
+          process.env.NODE_ENV !== 'production'
+            ? { target: 'pino-pretty', options: { colorize: true } }
+            : undefined,
+      },
     }),
   );
 
   const configService = app.get(ConfigService);
   const maxFileSize = configService.get<number>('maxFileSize') || maxSize;
+
+  // Security headers (helmet) — CSP allows unpkg CDN + inline scripts for frontend
+  await app.register(helmet, {
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://unpkg.com"],
+        scriptSrcAttr: ["'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https:"],
+        imgSrc: ["'self'", "data:"],
+        fontSrc: ["'self'", "https:", "data:"],
+        connectSrc: ["'self'", "https://unpkg.com"],
+        formAction: ["'self'"],
+        frameAncestors: ["'self'"],
+        objectSrc: ["'none'"],
+        upgradeInsecureRequests: [],
+      },
+    },
+  });
 
   // Register multipart support
   await app.register(multipart, {
@@ -63,10 +92,10 @@ async function bootstrap() {
 
   const port = configService.get<number>('port') || 3000;
   await app.listen(port, '0.0.0.0');
-  console.log(`File Service running on http://localhost:${port}`);
-  console.log(`Environment: ${configService.get<string>('nodeEnv')}`);
-  console.log(`Upload dir: ${uploadBaseDir}`);
-  console.log(`Max file size: ${(maxFileSize / 1024 / 1024).toFixed(0)}MB`);
+  logger.log(`File Service running on http://localhost:${port}`);
+  logger.log(`Environment: ${configService.get<string>('nodeEnv')}`);
+  logger.log(`Upload dir: ${uploadBaseDir}`);
+  logger.log(`Max file size: ${(maxFileSize / 1024 / 1024).toFixed(0)}MB`);
 }
 
 bootstrap();
