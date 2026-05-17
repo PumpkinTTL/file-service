@@ -29,7 +29,7 @@ export class UploadSessionEntity {
   @Column({ name: 'total_chunks', comment: '总切片数' })
   totalChunks: number;
 
-  @Column({ name: 'uploaded_chunks', type: 'simple-json', default: '[]', comment: '已上传的切片索引列表' })
+  @Column({ name: 'uploaded_chunks', type: 'json', nullable: true, comment: '已上传的切片索引列表（JSON 数组）' })
   uploadedChunks: number[];
 
   @Column({ name: 'mime_type', comment: 'MIME类型', nullable: true })
