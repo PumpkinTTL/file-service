@@ -1,7 +1,7 @@
-import { IsString, IsNumber, IsOptional, Min, Max } from 'class-validator';
+import { IsString, IsNumber, IsOptional, Min, Max, Matches } from 'class-validator';
 
 export class CheckUploadDto {
-  @IsString()
+  @Matches(/^[a-f0-9]{64}$/i, { message: 'hash 必须是有效的 SHA-256 哈希值' })
   hash: string;
 
   @IsString()

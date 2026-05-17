@@ -16,12 +16,12 @@ import helmet from '@fastify/helmet';
 const logger = new Logger('Bootstrap');
 
 async function bootstrap() {
-  const maxSize = 209715200; // 200MB fallback
+  const maxSize = parseInt(process.env.MAX_FILE_SIZE, 10) || 209715200;
 
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     new FastifyAdapter({
-      bodyLimit: 200 * 1024 * 1024, // Fastify body limit 200MB
+      bodyLimit: maxSize,
       logger: {
         level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
         transport:

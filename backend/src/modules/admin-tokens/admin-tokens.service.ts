@@ -62,15 +62,13 @@ export class AdminTokensService {
   }
 
   async setEnabled(id: number, enabled: boolean) {
-    const token = await this.tokenRepo.findOne({ where: { id } });
-    if (!token) {
-      throw new NotFoundException('令牌未找到');
-    }
-
-    await this.tokenRepo.update(id, {
+    const result = await this.tokenRepo.update(id, {
       enabled,
       revokedAt: enabled ? null : new Date(),
     });
+    if (result.affected === 0) {
+      throw new NotFoundException('令牌未找到');
+    }
     return { id, enabled };
   }
 
