@@ -119,6 +119,13 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           选择文件
         </div>
+        <div class="form-group" style="margin-bottom:12px">
+          <label>切片大小</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input type="range" v-model.number="chunkSizeMB" min="1" max="50" step="1" style="flex:1" />
+            <span style="font-size:14px;font-weight:600;color:#1E293B;min-width:60px;text-align:right">{{ chunkSizeMB }} MB</span>
+          </div>
+        </div>
         <div class="drop-zone" :class="{ dragover: isDragover }" @dragover.prevent="isDragover = true" @dragleave="isDragover = false" @drop.prevent="handleDrop" @click="$refs.fileInput.click()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           <p v-if="!selectedFile">拖拽文件到此处，或 <span style="color:#2563EB;font-weight:500">点击选择</span></p>
@@ -230,7 +237,7 @@
     ].join('\n')], { type: 'application/javascript' }));
 
     // ====== 常量 ======
-    var CHUNK_SIZE = 2 * 1024 * 1024;       // 2MB
+    var CHUNK_SIZE = 5 * 1024 * 1024;       // 5MB
     var CONCURRENCY = 3;                     // 并发数
     var MAX_RETRIES = 3;                     // 切片上传最大重试
     var DIRECT_UPLOAD_LIMIT = 10 * 1024 * 1024; // 10MB
@@ -253,6 +260,7 @@
         var paused = ref(false);          // 暂停状态
         var resumeInfo = ref('');         // 断点续传提示
         var shouldPause = ref(false);     // 暂停标志位
+        var chunkSizeMB = ref(5);          // 切片大小（MB），默认 5MB
 
         var formatSize = function(bytes) {
           if (!bytes) return '0 B';
@@ -336,22 +344,26 @@
         };
 
         // 单切片上传（含重试）
-        var uploadSingleChunk = async function(file, chunkIndex, currentUploadId, retriesLeft) {
+        var uploadSingleChunk = async function(file, chunkIndex, currentUploadId, retriesLeft, chunkSize) {
           if (retriesLeft === undefined) retriesLeft = MAX_RETRIES;
-          var start = chunkIndex * CHUNK_SIZE;
-          var end = Math.min(start + CHUNK_SIZE, file.size);
+          var start = chunkIndex * chunkSize;
+          var end = Math.min(start + chunkSize, file.size);
           var blob = file.slice(start, end);
           var fd = new FormData();
-          fd.append('file', blob);
           fd.append('uploadId', currentUploadId);
           fd.append('chunkIndex', chunkIndex);
+          fd.append('file', blob);
           try {
+              console.log('上传切片', chunkIndex, 'uploadId', currentUploadId);
               await axios.post('/upload/chunk', fd, {
-                headers: { 'x-upload-token': token.value, 'Content-Type': 'multipart/form-data' },
+                headers: { 'x-upload-token': token.value },
+                timeout: 10000,
               });
+              console.log('切片', chunkIndex, '上传成功');
             } catch (e) {
+            console.warn('切片', chunkIndex, '上传失败', e.message, e.response?.data);
             if (retriesLeft > 0) {
-              return uploadSingleChunk(file, chunkIndex, currentUploadId, retriesLeft - 1);
+              return uploadSingleChunk(file, chunkIndex, currentUploadId, retriesLeft - 1, chunkSize);
             }
             throw e;
           }
@@ -361,10 +373,6 @@
         var chunkedUpload = async function(file, hash, checkData) {
           status.value = 'uploading';
           uploadMode.value = 'chunked';
-          var totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-          chunkProgress.value = { uploaded: 0, total: totalChunks };
-          paused.value = false;
-          shouldPause.value = false;
 
           // 用 check 接口返回的 uploadId
           var serverUploadId = checkData ? checkData.uploadId : null;
@@ -381,7 +389,7 @@
               var data = progressRes.data.data;
               if (data && data.uploadedChunks) {
                 chunkProgress.value.uploaded = data.uploadedChunks.length;
-                resumeInfo.value = '检测到未完成的上传，将从第 ' + (data.uploadedChunks.length + 1) + ' 个切片继续';
+                resumeInfo.value = '检测到未完成的上传，将从第 ' + (data.uploadedChunks.length + 1) + ' 个切片继续（切片大小 ' + (data.chunkSize / 1024 / 1024) + 'MB）';
               } else {
                 localStorage.removeItem('upload_progress_' + hash);
                 currentUploadId = null;
@@ -401,6 +409,18 @@
               localStorage.setItem('upload_progress_' + hash, currentUploadId);
             }
           }
+
+          // 确定切片大小：续传用服务端记录的，新上传用 check 返回的，兜底用前端常量
+          var chunkSize = CHUNK_SIZE;
+          if (currentUploadId && data && data.chunkSize) {
+            chunkSize = data.chunkSize;
+          } else if (checkData && checkData.chunkSize) {
+            chunkSize = checkData.chunkSize;
+          }
+          var totalChunks = Math.ceil(file.size / chunkSize);
+          chunkProgress.value = { uploaded: 0, total: totalChunks };
+          paused.value = false;
+          shouldPause.value = false;
 
           // ====== 进度轮询：完全依赖后端数据，不依赖前端计数 ======
           var pollTimer = null;
@@ -473,7 +493,7 @@
                 for (var si = 0; si < pending.length; si++) {
                   if (paused.value) break;
                   try {
-                    await uploadSingleChunk(file, pending[si], currentUploadId, MAX_RETRIES * 3);
+                    await uploadSingleChunk(file, pending[si], currentUploadId, MAX_RETRIES * 3, chunkSize);
                   } catch (e) {
                     // 串行也失败，下轮循环重新上传
                   }
@@ -487,7 +507,7 @@
                     if (paused.value) break;
                     var idx = queue.shift();
                     try {
-                      await uploadSingleChunk(file, idx, currentUploadId, MAX_RETRIES);
+                      await uploadSingleChunk(file, idx, currentUploadId, MAX_RETRIES, chunkSize);
                     } catch (e) {
                       queue.push(idx);
                     }
@@ -556,7 +576,8 @@
             var checkRes = await axios.post('/upload/check', {
               hash: hash,
               filename: file.name,
-              size: file.size
+              size: file.size,
+              chunkSize: chunkSizeMB.value * 1024 * 1024
             }, {
               headers: { 'x-upload-token': token.value }
             });
@@ -638,7 +659,8 @@
           pauseUpload: pauseUpload,
           copy: copy,
           uploadButtonText: uploadButtonText,
-          resultHeading: resultHeading
+          resultHeading: resultHeading,
+          chunkSizeMB: chunkSizeMB
         };
       },
     }).mount('#app');

@@ -44,9 +44,8 @@ export class UploadController {
       return result; // 秒传
     }
 
-    // 文件不存在，创建切片上传会话（大文件用）
-    // 切片大小 2MB
-    const chunkSize = 2 * 1024 * 1024;
+    // 文件不存在，创建切片上传会话
+    const chunkSize = dto.chunkSize || (5 * 1024 * 1024);
     const session = await this.uploadService.createSession(
       hash,
       filename,
@@ -135,32 +134,37 @@ export class UploadController {
     let chunkBuffer: Buffer;
 
     try {
-      // 使用 parts() 逐个读取 multipart 字段，比 file() 更可靠
-      const parts = request.parts();
-      for await (const part of parts) {
-        if (part.type === 'field') {
-          if (part.fieldname === 'uploadId') {
-            uploadId = part.value;
-          } else if (part.fieldname === 'chunkIndex') {
-            chunkIndex = parseInt(part.value, 10);
-          }
-        } else if (part.type === 'file') {
-          // 限制单个切片大小 5MB
-          const chunks: Buffer[] = [];
-          let totalSize = 0;
-          for await (const chunk of part.file) {
-            totalSize += chunk.length;
-            if (totalSize > 5 * 1024 * 1024) {
-              throw new PayloadTooLargeException('单个切片大小超过限制（最大 5MB）');
-            }
-            chunks.push(chunk);
-          }
-          chunkBuffer = Buffer.concat(chunks);
-        }
+      // 使用 file()（显式设大 limits，避免被默认 1MB 限制）
+      const fileData = await request.file({
+        limits: {
+          fileSize: 1024 * 1024 * 1024,   // 1GB
+          fieldSize: 10 * 1024 * 1024,    // 10MB
+          fields: 100,
+          files: 10,
+          parts: 10000,
+        },
+      });
+
+      if (!fileData) {
+        throw new BadRequestException('未收到文件数据');
+      }
+
+      // 读取字段（兼容不同版本的 @fastify/multipart）
+      const rawUploadId = fileData.fields?.uploadId;
+      uploadId = rawUploadId?.value ?? rawUploadId;
+      const rawChunkIndex = fileData.fields?.chunkIndex;
+      chunkIndex = parseInt(rawChunkIndex?.value ?? rawChunkIndex, 10);
+
+      // 读取文件内容（和直传接口完全一致：toBuffer()）
+      chunkBuffer = await fileData.toBuffer();
+      console.log(`chunk ${chunkIndex}: size=${chunkBuffer.length}`);
+      if (chunkBuffer.length > 100 * 1024 * 1024) {
+        throw new PayloadTooLargeException('单个切片大小超过硬限制（最大 100MB）');
       }
     } catch (err: any) {
+      console.error('uploadChunk error:', err?.code, err?.statusCode, err?.message);
       if (this.isFileTooLarge(err)) {
-        throw new PayloadTooLargeException('单个切片大小超过限制（最大 5MB）');
+        throw new PayloadTooLargeException('切片大小超过限制');
       }
       throw new BadRequestException(`切片上传失败：${err?.message || '未知错误'}`);
     }

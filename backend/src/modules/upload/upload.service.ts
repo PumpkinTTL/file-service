@@ -114,6 +114,11 @@ export class UploadService {
       throw new BadRequestException(`切片索引无效，有效范围：0-${session.totalChunks - 1}`);
     }
 
+    // 校验切片大小不超过 session 的 chunkSize
+    if (chunkBuffer.length > session.chunkSize) {
+      throw new BadRequestException(`切片 ${chunkIndex} 大小 ${chunkBuffer.length} 超过限制 ${session.chunkSize}`);
+    }
+
     // 保存切片到临时目录
     const chunkDir = path.join(this.uploadBaseDir, '.chunks', uploadId);
     if (!fs.existsSync(chunkDir)) {
@@ -267,6 +272,7 @@ export class UploadService {
       uploadId: session.uploadId,
       uploadedChunks: session.uploadedChunks,
       totalChunks: session.totalChunks,
+      chunkSize: session.chunkSize,
       status: session.status,
       originalName: session.originalName,
       fileSize: session.fileSize,
@@ -284,6 +290,18 @@ export class UploadService {
     mimeType: string,
     token?: UploadTokenEntity,
   ) {
+    // 如果这个 hash 已有进行中的会话，直接复用（续传场景）
+    const existing = await this.sessionRepo.findOne({
+      where: { fileHash: hash, status: 'uploading' },
+    });
+    if (existing) {
+      return {
+        uploadId: existing.uploadId,
+        chunkSize: existing.chunkSize,
+        totalChunks: existing.totalChunks,
+      };
+    }
+
     const totalChunks = Math.ceil(size / chunkSize);
     const uploadId = uuidv4().replace(/-/g, '');
 
