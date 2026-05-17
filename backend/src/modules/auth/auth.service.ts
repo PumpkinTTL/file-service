@@ -34,13 +34,7 @@ export class AuthService {
     }
 
     const payload = { username: dto.username, sub: 'admin' };
-    const secret = this.configService.get<string>('jwtSecret');
-    const expiresIn = this.configService.get<string>('jwtExpiresIn');
-
-    const token = await this.jwtService.signAsync(payload, {
-      secret,
-      expiresIn: expiresIn as any,
-    });
+    const token = await this.jwtService.signAsync(payload);
 
     return { access_token: token };
   }
