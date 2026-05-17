@@ -986,14 +986,11 @@
           fd.append('chunkIndex', chunkIndex);
           fd.append('file', blob);
           try {
-              console.log('上传切片', chunkIndex, 'uploadId', currentUploadId);
               var res = await axios.post('/upload/chunk', fd, {
                 headers: { 'x-upload-token': token.value },
                 timeout: 120000,
               });
-              console.log('切片', chunkIndex, '上传成功');
             } catch (e) {
-            console.warn('切片', chunkIndex, '上传失败', e.message, e.response?.data);
             if (retriesLeft > 0) {
               await new Promise(function(r) { setTimeout(r, 1000 * (MAX_RETRIES - retriesLeft + 1)); });
               return uploadSingleChunk(file, chunkIndex, currentUploadId, retriesLeft - 1, chunkSize);
@@ -1052,12 +1049,11 @@
             chunkSize = Number(checkData.chunkSize);
           }
           var totalChunks = Math.ceil(file.size / chunkSize);
-          chunkProgress.value = { uploaded: 0, total: totalChunks };
+          chunkProgress.value = { uploaded: uploadedSet.size, total: totalChunks };
           paused.value = false;
 
-          // 断点续传时初始化本地进度
-          chunkProgress.value.uploaded = resumeInfo.value ? chunkProgress.value.uploaded : 0;
-          if (resumeInfo.value) {
+          // 断点续传时恢复进度
+          if (uploadedSet.size > 0) {
             progress.value = Math.round((uploadedSet.size / totalChunks) * 100);
           }
 
