@@ -959,9 +959,6 @@
                 timeout: 120000,
               });
               console.log('切片', chunkIndex, '上传成功');
-              // 用 chunk 响应驱动进度，不轮询
-              chunkProgress.value.uploaded++;
-              progress.value = Math.round((chunkProgress.value.uploaded / chunkProgress.value.total) * 100);
             } catch (e) {
             console.warn('切片', chunkIndex, '上传失败', e.message, e.response?.data);
             if (retriesLeft > 0) {
@@ -1081,6 +1078,7 @@
                   try {
                     await uploadSingleChunk(file, pending[si], currentUploadId, MAX_RETRIES * 3, chunkSize);
                     uploadedSet.add(pending[si]);
+                    progress.value = Math.round((uploadedSet.size / totalChunks) * 100);
                   } catch (e) {
                     // 串行也失败，下轮循环重新上传
                   }
@@ -1096,6 +1094,7 @@
                     try {
                       await uploadSingleChunk(file, idx, currentUploadId, MAX_RETRIES, chunkSize);
                       uploadedSet.add(idx);
+                      progress.value = Math.round((uploadedSet.size / totalChunks) * 100);
                     } catch (e) {
                       queue.push(idx);
                     }
