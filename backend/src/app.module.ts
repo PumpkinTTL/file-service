@@ -39,6 +39,9 @@ import { UploadSessionEntity } from './entities/upload-session.entity';
         ADMIN_PASSWORD: Joi.string(),
         MAX_FILE_SIZE: Joi.number().default(209715200),
         ALLOWED_FILE_TYPES: Joi.string(),
+        CORS_ORIGIN: Joi.string().allow(''),
+        THROTTLE_TTL: Joi.number().default(60),
+        THROTTLE_LIMIT: Joi.number().default(30),
       }),
       // Don't throw in dev when optional vars are missing — just warn
       validationOptions: {

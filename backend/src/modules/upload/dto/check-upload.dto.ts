@@ -8,6 +8,7 @@ export class CheckUploadDto {
   filename: string;
 
   @IsNumber()
+  @Min(1)
   size: number;
 
   @IsOptional()
