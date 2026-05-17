@@ -19,7 +19,11 @@ export class JwtAuthGuard implements CanActivate {
 
     const token = authHeader.startsWith('Bearer ')
       ? authHeader.substring(7)
-      : authHeader;
+      : undefined;
+
+    if (!token) {
+      throw new UnauthorizedException('Authorization 格式错误，需要 Bearer <token>');
+    }
 
     try {
       const payload = await this.jwtService.verifyAsync(token, {
