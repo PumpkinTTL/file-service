@@ -123,17 +123,23 @@ export class UploadService {
     const chunkPath = path.join(chunkDir, String(chunkIndex));
     fs.writeFileSync(chunkPath, chunkBuffer);
 
-    // 记录已上传切片
-    if (!session.uploadedChunks.includes(chunkIndex)) {
-      session.uploadedChunks.push(chunkIndex);
-      session.uploadedChunks.sort((a, b) => a - b);
+    // 记录已上传切片（原子操作：本地去重 + 覆盖更新）
+    let currentChunks = session.uploadedChunks || [];
+    if (!currentChunks.includes(chunkIndex)) {
+      currentChunks.push(chunkIndex);
+      currentChunks.sort((a, b) => a - b);
     }
-    await this.sessionRepo.save(session);
+
+    // 使用 UPDATE 而不是 save，避免覆盖其他并发写入
+    await this.sessionRepo.update(
+      { uploadId },
+      { uploadedChunks: currentChunks },
+    );
 
     return {
       uploadId: session.uploadId,
       chunkIndex,
-      uploadedChunks: session.uploadedChunks,
+      uploadedChunks: currentChunks,
       totalChunks: session.totalChunks,
     };
   }
