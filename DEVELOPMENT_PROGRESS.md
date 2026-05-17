@@ -12,7 +12,7 @@
 
 - [x] 初始化 NestJS 项目
 - [x] Fastify Adapter
-- [x] TypeORM + SQLite (sql.js)
+- [x] TypeORM + MySQL
 - [x] 多环境配置
 - [x] FileEntity
 - [x] UploadTokenEntity

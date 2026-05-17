@@ -67,15 +67,11 @@ export class AdminTokensService {
       throw new NotFoundException('令牌未找到');
     }
 
-    token.enabled = enabled;
-    if (!enabled) {
-      token.revokedAt = new Date();
-    } else {
-      token.revokedAt = null;
-    }
-
-    await this.tokenRepo.save(token);
-    return { id: token.id, enabled: token.enabled };
+    await this.tokenRepo.update(id, {
+      enabled,
+      revokedAt: enabled ? null : new Date(),
+    });
+    return { id, enabled };
   }
 
   async rotate(id: number) {
@@ -85,18 +81,21 @@ export class AdminTokensService {
     }
 
     const rawToken = `fs_${crypto.randomBytes(32).toString('hex')}`;
-    token.tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
-    token.tokenPrefix = rawToken.substring(0, 8);
-    token.revokedAt = null;
-    token.enabled = true;
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const tokenPrefix = rawToken.substring(0, 8);
 
-    await this.tokenRepo.save(token);
+    await this.tokenRepo.update(id, {
+      tokenHash,
+      tokenPrefix,
+      revokedAt: null,
+      enabled: true,
+    });
 
     return {
-      id: token.id,
+      id,
       name: token.name,
       token: rawToken,
-      tokenPrefix: token.tokenPrefix,
+      tokenPrefix,
       warning: '该令牌仅显示一次，请妥善保存',
     };
   }

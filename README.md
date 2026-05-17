@@ -4,9 +4,9 @@
 
 ## 技术栈
 
-- **Backend**: NestJS + Fastify + TypeORM + SQLite (sql.js) + JWT + Passport
+- **Backend**: NestJS + Fastify + TypeORM + MySQL + JWT + Passport
 - **Frontend**: 原生 HTML + Vue 3 CDN + Axios CDN
-- **数据库**: SQLite (通过 TypeORM + sql.js)
+- **数据库**: MySQL
 
 ## 快速开始
 
@@ -31,7 +31,7 @@ pnpm start:prod
 
 关键配置项:
 - `UPLOAD_BASE_DIR` - 文件上传根目录
-- `DATABASE_PATH` - SQLite 数据库路径
+- `DATABASE_HOST` / `DATABASE_PORT` / `DATABASE_USER` / `DATABASE_PASSWORD` / `DATABASE_NAME` - MySQL 数据库连接配置
 - `BASE_URL` - 服务基础 URL
 - `JWT_SECRET` - JWT 密钥
 - `ADMIN_USERNAME` / `ADMIN_PASSWORD` - 管理员账号

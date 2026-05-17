@@ -136,7 +136,7 @@ export class UploadService {
 
     // 保存切片到临时目录（纯磁盘写入，无 DB 操作）
     const chunkDir = path.join(this.uploadBaseDir, '.chunks', uploadId);
-    fs.mkdirSync(chunkDir, { recursive: true });
+    await fs.promises.mkdir(chunkDir, { recursive: true });
 
     const chunkPath = path.join(chunkDir, String(chunkIndex));
     await fs.promises.writeFile(chunkPath, chunkBuffer);
@@ -163,15 +163,27 @@ export class UploadService {
       throw new BadRequestException('无效的上传会话 ID');
     }
 
-    const session = await this.sessionRepo.findOne({ where: { uploadId } });
-
-    if (!session) {
-      throw new NotFoundException('上传会话不存在');
+    // 原子操作：将 status 从 'uploading' 改为 'merging'，防止并发合并
+    const claimed = await this.sessionRepo.update(
+      { uploadId, status: 'uploading' },
+      { status: 'merging' },
+    );
+    if (claimed.affected === 0) {
+      const exists = await this.sessionRepo.findOne({ where: { uploadId } });
+      if (!exists) {
+        throw new NotFoundException('上传会话不存在');
+      }
+      throw new BadRequestException('该上传会话已完成或正在合并中');
     }
 
-    // 状态校验：只允许 uploading 状态合并
-    if (session.status !== 'uploading') {
-      throw new BadRequestException('该上传会话已完成或已过期');
+    const session = await this.sessionRepo.findOne({ where: { uploadId } });
+
+    // 校验客户端传的 totalChunks 与 session 一致
+    if (totalChunks !== Number(session.totalChunks)) {
+      await this.sessionRepo.update({ uploadId }, { status: 'uploading' });
+      throw new BadRequestException(
+        `切片数量不一致：客户端 ${totalChunks}，会话 ${Number(session.totalChunks)}`,
+      );
     }
 
     const chunkDir = path.join(this.uploadBaseDir, '.chunks', uploadId);
@@ -181,8 +193,7 @@ export class UploadService {
       const existing = await this.fileRepo.findOne({ where: { hash } });
       if (existing) {
         this.cleanupChunks(chunkDir);
-        session.status = 'merged';
-        await this.sessionRepo.save(session);
+        await this.sessionRepo.update({ uploadId }, { status: 'merged' });
 
         return {
           duplicated: true,
@@ -208,7 +219,7 @@ export class UploadService {
       const fileName = `${uuidv4()}${ext}`;
       const relativePath = `uploads/${datePath}/${fileName}`;
       const fullDirPath = path.join(this.uploadBaseDir, datePath);
-      fs.mkdirSync(fullDirPath, { recursive: true });
+      await fs.promises.mkdir(fullDirPath, { recursive: true });
 
       const fullPath = path.join(this.uploadBaseDir, datePath, fileName);
       const writeStream = fs.createWriteStream(fullPath);
@@ -258,8 +269,7 @@ export class UploadService {
 
       // 清理
       this.cleanupChunks(chunkDir);
-      session.status = 'merged';
-      await this.sessionRepo.save(session);
+      await this.sessionRepo.update({ uploadId }, { status: 'merged' });
 
       return {
         duplicated: false,
@@ -270,7 +280,12 @@ export class UploadService {
         hash: actualHash,
       };
     } catch (err) {
-      // 确保异常时也清理临时文件
+      // 失败时重置状态，允许客户端重试
+      try {
+        await this.sessionRepo.update({ uploadId, status: 'merging' }, { status: 'uploading' });
+      } catch {
+        // 忽略重置失败
+      }
       this.cleanupChunks(chunkDir);
       throw err;
     }
@@ -344,6 +359,21 @@ export class UploadService {
 
     await this.sessionRepo.save(session);
 
+    // 防并发：检查是否有其他请求同时创建了相同 hash 的 session
+    const sessions = await this.sessionRepo.find({
+      where: { fileHash: hash, status: 'uploading' },
+      order: { id: 'ASC' },
+    });
+    if (sessions.length > 1) {
+      const [first, ...duplicates] = sessions;
+      await this.sessionRepo.remove(duplicates);
+      return {
+        uploadId: first.uploadId,
+        chunkSize: Number(first.chunkSize),
+        totalChunks: Number(first.totalChunks),
+      };
+    }
+
     return {
       uploadId,
       chunkSize,
@@ -367,7 +397,7 @@ export class UploadService {
     const fileName = `${uuidv4()}${ext}`;
     const relativePath = `uploads/${datePath}/${fileName}`;
     const fullDirPath = path.join(this.uploadBaseDir, datePath);
-    fs.mkdirSync(fullDirPath, { recursive: true });
+    await fs.promises.mkdir(fullDirPath, { recursive: true });
 
     const fullPath = path.join(this.uploadBaseDir, datePath, fileName);
     await fs.promises.writeFile(fullPath, buffer);
