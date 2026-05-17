@@ -99,8 +99,8 @@ export class UploadService {
     chunkIndex: number,
     token?: UploadTokenEntity,
   ) {
-    // 查找或创建 session
-    let session = await this.sessionRepo.findOne({ where: { uploadId } });
+    // 查找 session
+    const session = await this.sessionRepo.findOne({ where: { uploadId } });
 
     if (!session) {
       throw new NotFoundException('上传会话不存在，请先调用 /upload/check 创建');
@@ -110,16 +110,16 @@ export class UploadService {
       throw new BadRequestException('该上传会话已完成或已过期');
     }
 
-    if (chunkIndex < 0 || chunkIndex >= session.totalChunks) {
-      throw new BadRequestException(`切片索引无效，有效范围：0-${session.totalChunks - 1}`);
+    if (chunkIndex < 0 || chunkIndex >= Number(session.totalChunks)) {
+      throw new BadRequestException(`切片索引无效，有效范围：0-${Number(session.totalChunks) - 1}`);
     }
 
     // 校验切片大小不超过 session 的 chunkSize
-    if (chunkBuffer.length > session.chunkSize) {
+    if (chunkBuffer.length > Number(session.chunkSize)) {
       throw new BadRequestException(`切片 ${chunkIndex} 大小 ${chunkBuffer.length} 超过限制 ${session.chunkSize}`);
     }
 
-    // 保存切片到临时目录
+    // 保存切片到临时目录（纯磁盘写入，无 DB 操作）
     const chunkDir = path.join(this.uploadBaseDir, '.chunks', uploadId);
     if (!fs.existsSync(chunkDir)) {
       fs.mkdirSync(chunkDir, { recursive: true });
@@ -128,24 +128,10 @@ export class UploadService {
     const chunkPath = path.join(chunkDir, String(chunkIndex));
     fs.writeFileSync(chunkPath, chunkBuffer);
 
-    // 记录已上传切片（原子操作：本地去重 + 覆盖更新）
-    let currentChunks = session.uploadedChunks || [];
-    if (!currentChunks.includes(chunkIndex)) {
-      currentChunks.push(chunkIndex);
-      currentChunks.sort((a, b) => a - b);
-    }
-
-    // 使用 UPDATE 而不是 save，避免覆盖其他并发写入
-    await this.sessionRepo.update(
-      { uploadId },
-      { uploadedChunks: currentChunks },
-    );
-
     return {
       uploadId: session.uploadId,
       chunkIndex,
-      uploadedChunks: currentChunks,
-      totalChunks: session.totalChunks,
+      totalChunks: Number(session.totalChunks),
     };
   }
 
@@ -165,9 +151,11 @@ export class UploadService {
       throw new NotFoundException('上传会话不存在');
     }
 
-    if (session.uploadedChunks.length !== totalChunks) {
+    // 从磁盘读取已上传切片，验证完整性
+    const uploadedChunks = this.getChunkFiles(uploadId);
+    if (uploadedChunks.length !== totalChunks) {
       throw new BadRequestException(
-        `切片不完整：已上传 ${session.uploadedChunks.length}/${totalChunks} 个切片`,
+        `切片不完整：已上传 ${uploadedChunks.length}/${totalChunks} 个切片`,
       );
     }
 
@@ -268,10 +256,13 @@ export class UploadService {
       throw new NotFoundException('上传会话不存在');
     }
 
+    // 从磁盘读取已上传的切片列表（零 DB 操作）
+    const uploadedChunks = this.getChunkFiles(uploadId);
+
     return {
       uploadId: session.uploadId,
-      uploadedChunks: session.uploadedChunks,
-      totalChunks: session.totalChunks,
+      uploadedChunks,
+      totalChunks: Number(session.totalChunks),
       chunkSize: session.chunkSize,
       status: session.status,
       originalName: session.originalName,
@@ -312,7 +303,6 @@ export class UploadService {
       fileSize: size,
       chunkSize,
       totalChunks,
-      uploadedChunks: [],
       mimeType,
       tokenId: token?.id || null,
       status: 'uploading',
@@ -369,6 +359,20 @@ export class UploadService {
     await this.fileRepo.save(fileRecord);
 
     return { fileName, relativePath, fullUrl, size, hash };
+  }
+
+  /**
+   * 从磁盘读取已上传的切片索引列表
+   */
+  private getChunkFiles(uploadId: string): number[] {
+    const chunkDir = path.join(this.uploadBaseDir, '.chunks', uploadId);
+    if (!fs.existsSync(chunkDir)) {
+      return [];
+    }
+    return fs.readdirSync(chunkDir)
+      .map(name => parseInt(name, 10))
+      .filter(n => !isNaN(n))
+      .sort((a, b) => a - b);
   }
 
   /**

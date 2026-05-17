@@ -8,82 +8,707 @@
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
   <style>
-    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #F8FAFC; color: #1E293B; min-height: 100vh; }
+    /* ===== Design Tokens ===== */
+    :root {
+      --primary: #2563EB;
+      --primary-hover: #1D4ED8;
+      --primary-light: #EFF6FF;
+      --primary-bg: #BFDBFE;
+      --accent: #F97316;
+      --accent-hover: #EA580C;
+      --accent-light: #FFF7ED;
+      --bg: #F8FAFC;
+      --text: #1E293B;
+      --text-secondary: #475569;
+      --text-muted: #94A3B8;
+      --border: #E2E8F0;
+      --border-hover: #CBD5E1;
+      --success: #16A34A;
+      --success-bg: #F0FDF4;
+      --success-border: #BBF7D0;
+      --warning: #D97706;
+      --warning-bg: #FFFBEB;
+      --warning-border: #FDE68A;
+      --radius-sm: 8px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --radius-xl: 16px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.06), 0 2px 4px -1px rgba(0,0,0,0.04);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.06), 0 4px 6px -2px rgba(0,0,0,0.04);
+      --shadow-glow: 0 0 0 4px rgba(37,99,235,0.08);
+      --transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
 
-    /* Nav */
-    nav { background: #fff; border-bottom: 1px solid #E2E8F0; padding: 0 32px; height: 64px; display: flex; align-items: center; justify-content: space-between; }
-    nav .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-    nav .brand svg { width: 24px; height: 24px; color: #2563EB; }
-    nav .brand span { font-size: 16px; font-weight: 700; color: #0F172A; }
-    nav .nav-links { display: flex; gap: 6px; }
-    nav .nav-links a { padding: 7px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; text-decoration: none; color: #475569; transition: all 0.15s; cursor: pointer; }
-    nav .nav-links a:hover { background: #F1F5F9; }
+    /* ===== Reset & Base ===== */
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-    .container { max-width: 640px; margin: 40px auto; padding: 0 20px; }
-    .page-title { font-size: 24px; font-weight: 700; color: #0F172A; margin-bottom: 4px; }
-    .page-desc { font-size: 14px; color: #64748B; margin-bottom: 28px; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
 
-    .card { background: #fff; border-radius: 14px; padding: 28px; border: 1px solid #E2E8F0; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
-    .card-title { font-size: 15px; font-weight: 600; color: #1E293B; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
-    .card-title svg { width: 18px; height: 18px; color: #2563EB; }
+    /* ===== Navigation ===== */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255,255,255,0.82);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
 
-    .form-group { margin-bottom: 16px; }
-    .form-group label { display: block; font-size: 13px; font-weight: 500; color: #475569; margin-bottom: 6px; }
-    .form-group input[type="text"] { width: 100%; padding: 10px 14px; border: 1px solid #E2E8F0; border-radius: 10px; font-size: 14px; background: #F8FAFC; color: #1E293B; transition: all 0.2s; outline: none; font-family: inherit; }
-    .form-group input[type="text"]:focus { border-color: #2563EB; background: #fff; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
-    .form-group input[type="text"]::placeholder { color: #94A3B8; }
+    nav .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
 
-    .drop-zone { border: 2px dashed #CBD5E1; border-radius: 12px; padding: 48px 24px; text-align: center; cursor: pointer; transition: all 0.2s; background: #FAFBFC; }
-    .drop-zone:hover { border-color: #2563EB; background: #EFF6FF; }
-    .drop-zone.dragover { border-color: #2563EB; background: #DBEAFE; }
-    .drop-zone svg { width: 40px; height: 40px; color: #94A3B8; margin-bottom: 12px; }
-    .drop-zone.dragover svg, .drop-zone:hover svg { color: #2563EB; }
-    .drop-zone p { font-size: 14px; color: #64748B; }
-    .drop-zone .file-info { font-weight: 500; color: #1E293B; }
+    nav .brand svg {
+      width: 28px;
+      height: 28px;
+      color: var(--primary);
+    }
 
-    .btn-upload { width: 100%; padding: 12px; background: #2563EB; color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: inherit; margin-top: 16px; }
-    .btn-upload:hover:not(:disabled) { background: #1D4ED8; box-shadow: 0 4px 12px rgba(37,99,235,0.25); }
-    .btn-upload:disabled { background: #CBD5E1; cursor: not-allowed; }
-    .btn-upload:active:not(:disabled) { transform: scale(0.98); }
+    nav .brand span {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.02em;
+    }
 
-    .progress { margin-top: 16px; }
-    .progress-bar { width: 100%; height: 6px; background: #E2E8F0; border-radius: 3px; overflow: hidden; }
-    .progress-fill { height: 100%; background: linear-gradient(90deg, #2563EB, #3B82F6); border-radius: 3px; transition: width 0.3s ease; }
-    .progress-text { font-size: 12px; color: #64748B; margin-top: 6px; text-align: right; }
+    nav .nav-links {
+      display: flex;
+      gap: 4px;
+    }
 
-    /* Status indicator (hashing / checking / merging) */
-    .status-indicator { display: flex; align-items: center; gap: 10px; margin-top: 16px; padding: 12px 16px; background: #EFF6FF; border-radius: 10px; font-size: 13px; font-weight: 500; color: #2563EB; }
-    .status-dot { width: 8px; height: 8px; background: #2563EB; border-radius: 50%; flex-shrink: 0; animation: pulse 1.4s ease-in-out infinite; }
-    @keyframes pulse { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.25); } }
+    nav .nav-links a {
+      padding: 8px 18px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 500;
+      text-decoration: none;
+      color: var(--text-secondary);
+      transition: all var(--transition);
+      cursor: pointer;
+    }
 
-    .chunk-info { font-size: 12px; color: #64748B; margin-top: 6px; text-align: right; }
-    .hash-progress { font-size: 12px; color: #64748B; margin-top: 2px; }
+    nav .nav-links a:hover {
+      background: #F1F5F9;
+      color: var(--text);
+    }
 
-    /* Result */
-    .result-card { border-left: 3px solid #2563EB; }
-    .result-grid { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; font-size: 14px; }
-    .result-label { color: #64748B; font-weight: 500; }
-    .result-value { color: #1E293B; word-break: break-all; }
-    .result-value a { color: #2563EB; text-decoration: none; }
-    .result-value a:hover { text-decoration: underline; }
+    /* ===== Layout ===== */
+    .container {
+      max-width: 640px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
 
-    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 100px; font-size: 12px; font-weight: 600; }
-    .badge-new { background: #F0FDF4; color: #16A34A; border: 1px solid #BBF7D0; }
-    .badge-dup { background: #FFFBEB; color: #D97706; border: 1px solid #FDE68A; }
-    .badge svg { width: 12px; height: 12px; }
+    .page-header {
+      margin-bottom: 28px;
+    }
 
-    .btn-copy { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: #F1F5F9; border: 1px solid #E2E8F0; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; color: #475569; transition: all 0.15s; font-family: inherit; }
-    .btn-copy:hover { background: #E2E8F0; }
-    .btn-copy svg { width: 14px; height: 14px; }
+    .page-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+      letter-spacing: -0.03em;
+      line-height: 1.25;
+    }
 
-    .btn-pause { display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 10px; margin-top: 10px; background: #fff; border: 1px solid #E2E8F0; border-radius: 10px; font-size: 14px; font-weight: 500; cursor: pointer; color: #475569; transition: all 0.15s; font-family: inherit; }
-    .btn-pause:hover { background: #F8FAFC; border-color: #CBD5E1; }
-    .btn-pause:active { transform: scale(0.98); }
+    .page-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
 
-    .resume-info { font-size: 12px; color: #16A34A; background: #F0FDF4; padding: 6px 12px; border-radius: 6px; margin-top: 8px; text-align: center; border: 1px solid #BBF7D0; }
+    /* ===== Cards ===== */
+    .card {
+      background: #fff;
+      border-radius: var(--radius-xl);
+      padding: 28px;
+      border: 1px solid var(--border);
+      margin-bottom: 20px;
+      box-shadow: var(--shadow-sm);
+      transition: box-shadow var(--transition), transform var(--transition);
+    }
 
-    @media (max-width: 640px) { .container { margin: 20px auto; } .drop-zone { padding: 32px 16px; } }
+    .card:hover {
+      box-shadow: var(--shadow-md);
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-title svg {
+      width: 20px;
+      height: 20px;
+      color: var(--primary);
+      flex-shrink: 0;
+    }
+
+    /* ===== Form Elements ===== */
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 7px;
+    }
+
+    .input-group {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-group .input-icon {
+      position: absolute;
+      left: 14px;
+      width: 18px;
+      height: 18px;
+      color: var(--text-muted);
+      pointer-events: none;
+      flex-shrink: 0;
+    }
+
+    .form-group input[type="text"] {
+      width: 100%;
+      padding: 11px 14px 11px 42px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      background: var(--bg);
+      color: var(--text);
+      transition: all var(--transition);
+      outline: none;
+      font-family: inherit;
+    }
+
+    .form-group input[type="text"]:focus {
+      border-color: var(--primary);
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+    }
+
+    .form-group input[type="text"]::placeholder {
+      color: #94A3B8;
+    }
+
+    /* ===== Slider Row ===== */
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .slider-value {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--primary);
+      min-width: 64px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      background: var(--primary-light);
+      padding: 3px 10px;
+      border-radius: 6px;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      outline: none;
+      cursor: pointer;
+      transition: background var(--transition);
+    }
+
+    input[type="range"]:hover {
+      background: var(--border-hover);
+    }
+
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 6px;
+      border-radius: 3px;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      background: var(--primary);
+      border-radius: 50%;
+      cursor: pointer;
+      margin-top: -7px;
+      box-shadow: 0 1px 4px rgba(37,99,235,0.3);
+      transition: all var(--transition);
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+      box-shadow: 0 2px 8px rgba(37,99,235,0.4);
+    }
+
+    input[type="range"]::-moz-range-track {
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      border: none;
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      background: var(--primary);
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 1px 4px rgba(37,99,235,0.3);
+    }
+
+    /* ===== Drop Zone ===== */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: 14px;
+      padding: 48px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 250ms ease;
+      background: #FAFBFC;
+      position: relative;
+    }
+
+    .drop-zone:hover {
+      border-color: var(--primary);
+      background: linear-gradient(135deg, #FAFBFC 0%, var(--primary-light) 100%);
+      box-shadow: 0 0 0 4px rgba(37,99,235,0.06);
+    }
+
+    .drop-zone.dragover {
+      border-color: var(--primary);
+      border-style: solid;
+      background: linear-gradient(135deg, var(--primary-light) 0%, #DBEAFE 100%);
+      box-shadow: 0 0 0 4px rgba(37,99,235,0.1);
+    }
+
+    .drop-zone .drop-icon {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 14px;
+    }
+
+    .drop-zone .drop-icon svg {
+      width: 44px;
+      height: 44px;
+      color: #CBD5E1;
+      transition: all 250ms ease;
+    }
+
+    .drop-zone:hover .drop-icon svg,
+    .drop-zone.dragover .drop-icon svg {
+      color: var(--primary);
+      transform: translateY(-4px) scale(1.05);
+    }
+
+    .drop-zone.dragover .drop-icon svg {
+      animation: float-icon 1.2s ease-in-out infinite;
+    }
+
+    @keyframes float-icon {
+      0%, 100% { transform: translateY(-4px); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .drop-zone p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .drop-zone .drop-link {
+      color: var(--primary);
+      font-weight: 600;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      text-decoration-thickness: 1.5px;
+    }
+
+    .drop-zone .file-info {
+      font-weight: 600;
+      color: var(--text);
+      font-size: 15px;
+    }
+
+    .drop-zone .file-size {
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    /* ===== Buttons ===== */
+    .btn-upload {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 14px 24px;
+      background: linear-gradient(135deg, var(--accent), #FB923C);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition);
+      font-family: inherit;
+      margin-top: 20px;
+      letter-spacing: 0.01em;
+      box-shadow: 0 1px 3px rgba(249,115,22,0.25);
+    }
+
+    .btn-upload:hover:not(:disabled) {
+      background: linear-gradient(135deg, var(--accent-hover), #FB923C);
+      box-shadow: 0 4px 14px rgba(249,115,22,0.35);
+      transform: translateY(-1px);
+    }
+
+    .btn-upload:active:not(:disabled) {
+      transform: translateY(0) scale(0.98);
+      box-shadow: 0 1px 3px rgba(249,115,22,0.25);
+    }
+
+    .btn-upload:disabled {
+      background: #CBD5E1;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .btn-pause {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 11px;
+      margin-top: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      color: var(--text-secondary);
+      transition: all var(--transition);
+      font-family: inherit;
+    }
+
+    .btn-pause:hover {
+      background: var(--bg);
+      border-color: var(--border-hover);
+      color: var(--text);
+    }
+
+    .btn-pause:active {
+      transform: scale(0.98);
+    }
+
+    .btn-copy {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      color: var(--text-secondary);
+      transition: all var(--transition);
+      font-family: inherit;
+      white-space: nowrap;
+    }
+
+    .btn-copy:hover {
+      background: var(--primary-light);
+      border-color: var(--primary-bg);
+      color: var(--primary);
+    }
+
+    .btn-copy svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* ===== Progress ===== */
+    .progress {
+      margin-top: 18px;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), #60A5FA);
+      border-radius: 4px;
+      transition: width 400ms cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .progress-fill::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      animation: shimmer 2s infinite;
+    }
+
+    @keyframes shimmer {
+      100% { left: 100%; }
+    }
+
+    .progress-text {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-top: 8px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .chunk-info {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      text-align: right;
+    }
+
+    .hash-progress {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* ===== Status Indicator ===== */
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 18px;
+      padding: 14px 18px;
+      background: var(--primary-light);
+      border: 1px solid var(--primary-bg);
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--primary);
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      background: var(--primary);
+      border-radius: 50%;
+      flex-shrink: 0;
+      animation: pulse-dot 1.4s ease-in-out infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 0.3; transform: scale(0.85); }
+      50% { opacity: 1; transform: scale(1.2); }
+    }
+
+    /* ===== Resume Info ===== */
+    .resume-info {
+      font-size: 12px;
+      color: var(--success);
+      background: var(--success-bg);
+      padding: 10px 16px;
+      border-radius: var(--radius-sm);
+      margin-top: 12px;
+      text-align: center;
+      border: 1px solid var(--success-border);
+      line-height: 1.5;
+    }
+
+    /* ===== Result Card ===== */
+    .result-card {
+      border-left: 4px solid var(--success);
+      background: linear-gradient(135deg, #fff 0%, #FAFFFE 100%);
+      animation: result-slide-up 400ms ease both;
+    }
+
+    @keyframes result-slide-up {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-card .result-icon {
+      display: flex;
+    }
+
+    .result-card .result-icon svg {
+      color: var(--success);
+    }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 12px 24px;
+      font-size: 14px;
+    }
+
+    .result-label {
+      color: var(--text-muted);
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .result-value {
+      color: var(--text);
+      word-break: break-all;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .result-value a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .result-value a:hover {
+      text-decoration: underline;
+    }
+
+    .hash-value {
+      font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* ===== Badges ===== */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 12px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      margin-left: auto;
+      white-space: nowrap;
+    }
+
+    .badge-new {
+      background: var(--success-bg);
+      color: var(--success);
+      border: 1px solid var(--success-border);
+    }
+
+    .badge-dup {
+      background: var(--warning-bg);
+      color: var(--warning);
+      border: 1px solid var(--warning-border);
+    }
+
+    .badge svg {
+      width: 13px;
+      height: 13px;
+    }
+
+    /* ===== Responsive ===== */
+    @media (max-width: 640px) {
+      nav {
+        padding: 0 16px;
+      }
+
+      nav .brand svg {
+        width: 24px;
+        height: 24px;
+      }
+
+      nav .brand span {
+        font-size: 15px;
+      }
+
+      nav .nav-links a {
+        padding: 7px 12px;
+        font-size: 13px;
+      }
+
+      .container {
+        margin: 24px auto;
+      }
+
+      .page-title {
+        font-size: 24px;
+      }
+
+      .card {
+        padding: 22px;
+        border-radius: var(--radius-lg);
+      }
+
+      .drop-zone {
+        padding: 36px 18px;
+      }
+
+      .drop-zone .drop-icon svg {
+        width: 36px;
+        height: 36px;
+      }
+
+      .result-grid {
+        gap: 10px 16px;
+        font-size: 13px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -100,9 +725,12 @@
     </nav>
 
     <div class="container">
-      <h1 class="page-title">上传文件</h1>
-      <p class="page-desc">使用 Upload Token 上传文件到文件服务</p>
+      <div class="page-header">
+        <h1 class="page-title">上传文件</h1>
+        <p class="page-desc">使用 Upload Token 上传文件到文件服务</p>
+      </div>
 
+      <!-- Token Card -->
       <div class="card">
         <div class="card-title">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -110,29 +738,35 @@
         </div>
         <div class="form-group">
           <label>Upload Token</label>
-          <input type="text" v-model="token" placeholder="粘贴你的 Upload Token" />
+          <div class="input-group">
+            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <input type="text" v-model="token" placeholder="粘贴你的 Upload Token" />
+          </div>
         </div>
       </div>
 
+      <!-- Upload Card -->
       <div class="card">
         <div class="card-title">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           选择文件
         </div>
-        <div class="form-group" style="margin-bottom:12px">
+        <div class="form-group">
           <label>切片大小</label>
-          <div style="display:flex;align-items:center;gap:8px">
-            <input type="range" v-model.number="chunkSizeMB" min="1" max="50" step="1" style="flex:1" />
-            <span style="font-size:14px;font-weight:600;color:#1E293B;min-width:60px;text-align:right">{{ chunkSizeMB }} MB</span>
+          <div class="slider-row">
+            <input type="range" v-model.number="chunkSizeMB" min="1" max="50" step="1" />
+            <span class="slider-value">{{ chunkSizeMB }} MB</span>
           </div>
         </div>
         <div class="drop-zone" :class="{ dragover: isDragover }" @dragover.prevent="isDragover = true" @dragleave="isDragover = false" @drop.prevent="handleDrop" @click="$refs.fileInput.click()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          <p v-if="!selectedFile">拖拽文件到此处，或 <span style="color:#2563EB;font-weight:500">点击选择</span></p>
-          <p v-else class="file-info">{{ selectedFile.name }} <span style="color:#64748B;font-weight:400">({{ formatSize(selectedFile.size) }})</span></p>
+          <div class="drop-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </div>
+          <p v-if="!selectedFile">拖拽文件到此处，或 <span class="drop-link">点击选择</span></p>
+          <p v-else class="file-info">{{ selectedFile.name }} <span class="file-size">({{ formatSize(selectedFile.size) }})</span></p>
           <input type="file" ref="fileInput" style="display:none" @change="handleSelect" />
         </div>
-         <button class="btn-upload" :disabled="!token || !selectedFile || uploading" @click="upload">
+        <button class="btn-upload" :disabled="!token || !selectedFile || uploading" @click="upload">
           {{ uploadButtonText }}
         </button>
 
@@ -180,7 +814,9 @@
 
       <div v-if="result" class="card result-card">
         <div class="card-title">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          <div class="result-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
           {{ resultHeading }}
           <span class="badge" :class="result.duplicated ? 'badge-dup' : 'badge-new'">
             <svg v-if="result.duplicated" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
@@ -199,7 +835,7 @@
             </button>
           </span>
           <span class="result-label">大小</span><span class="result-value">{{ formatSize(result.size) }}</span>
-          <span class="result-label">SHA256</span><span class="result-value" style="font-family:monospace;font-size:12px;color:#64748B">{{ result.hash }}</span>
+          <span class="result-label">SHA256</span><span class="result-value hash-value">{{ result.hash }}</span>
         </div>
       </div>
     </div>
