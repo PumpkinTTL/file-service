@@ -6,6 +6,7 @@ import { UploadTokenEntity } from '../../entities/upload-token.entity';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { LogsModule } from '../admin-logs/admin-logs.module';
 
 @Module({
   imports: [
@@ -17,8 +18,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
         secret: config.get<string>('jwtSecret'),
       }),
     }),
+    LogsModule,
   ],
   controllers: [AdminTokensController],
   providers: [AdminTokensService, JwtAuthGuard],
+  exports: [AdminTokensService],
 })
 export class AdminTokensModule {}

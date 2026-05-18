@@ -4,9 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>File Service - 上传</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script src="/lib/vue.global.prod.js"></script>
+  <script src="/lib/axios.min.js"></script>
   <style>
     /* ===== Design Tokens ===== */
     :root {
@@ -47,7 +46,7 @@
     }
 
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", sans-serif;
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
@@ -377,26 +376,65 @@
       font-size: 15px;
       font-weight: 600;
       cursor: pointer;
-      transition: all var(--transition);
+      transition: transform 180ms ease, box-shadow 240ms ease, background 240ms ease, filter 240ms ease;
       font-family: inherit;
       margin-top: 20px;
       letter-spacing: 0.01em;
       box-shadow: 0 1px 3px rgba(249,115,22,0.25);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-upload::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.28) 45%, transparent 70%);
+      transform: translateX(-120%);
+      transition: transform 520ms ease;
     }
 
     .btn-upload:hover:not(:disabled) {
       background: var(--accent-hover);
       box-shadow: 0 4px 12px rgba(249,115,22,0.3);
+      transform: translateY(-1px);
+    }
+
+    .btn-upload:hover:not(:disabled)::after,
+    .btn-upload.is-ready::after {
+      transform: translateX(120%);
     }
 
     .btn-upload:active:not(:disabled) {
       box-shadow: 0 1px 3px rgba(249,115,22,0.25);
+      transform: translateY(0) scale(0.99);
     }
 
     .btn-upload:disabled {
       background: #CBD5E1;
       cursor: not-allowed;
       box-shadow: none;
+    }
+
+    .btn-upload.is-busy {
+      background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+      cursor: wait;
+      box-shadow: 0 8px 22px rgba(249,115,22,0.24);
+      filter: saturate(1.05);
+    }
+
+    .btn-upload.is-busy::before {
+      content: '';
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.45);
+      border-top-color: #fff;
+      animation: spin 800ms linear infinite;
+    }
+
+    .btn-upload.is-busy::after {
+      animation: buttonSweep 1.4s ease-in-out infinite;
     }
 
     .btn-pause {
@@ -463,13 +501,16 @@
       background: var(--border);
       border-radius: 4px;
       overflow: hidden;
+      box-shadow: inset 0 1px 2px rgba(15,23,42,0.08);
     }
 
     .progress-fill {
       height: 100%;
-      background: var(--primary);
+      background: linear-gradient(90deg, var(--primary), #60A5FA, var(--primary));
+      background-size: 180% 100%;
       border-radius: 4px;
       transition: width 400ms cubic-bezier(0.4, 0, 0.2, 1);
+      animation: progressFlow 1.25s linear infinite;
     }
 
     .progress-text {
@@ -490,7 +531,9 @@
 
     .hash-progress {
       font-size: 12px;
-      color: var(--text-muted);
+      color: var(--primary);
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
     }
 
     /* ===== Status Indicator ===== */
@@ -506,6 +549,16 @@
       font-size: 13px;
       font-weight: 500;
       color: var(--primary);
+      box-shadow: 0 8px 22px rgba(37,99,235,0.08);
+      animation: statusFadeIn 240ms ease both;
+    }
+
+    .status-indicator-progress {
+      align-items: flex-start;
+    }
+
+    .status-body {
+      flex: 1;
     }
 
     .status-dot {
@@ -514,6 +567,65 @@
       background: var(--primary);
       border-radius: 50%;
       flex-shrink: 0;
+      margin-top: 3px;
+      position: relative;
+      animation: dotPulse 1.2s ease-in-out infinite;
+    }
+
+    .status-dot::after {
+      content: '';
+      position: absolute;
+      inset: -5px;
+      border-radius: 50%;
+      border: 1px solid rgba(37,99,235,0.28);
+      animation: dotRing 1.2s ease-out infinite;
+    }
+
+    .hash-meter {
+      width: 100%;
+      height: 5px;
+      margin-top: 9px;
+      background: rgba(37,99,235,0.13);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .hash-meter-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), #93C5FD, var(--primary));
+      background-size: 180% 100%;
+      border-radius: inherit;
+      transition: width 360ms cubic-bezier(0.4, 0, 0.2, 1);
+      animation: progressFlow 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes buttonSweep {
+      0% { transform: translateX(-120%); }
+      55%, 100% { transform: translateX(120%); }
+    }
+
+    @keyframes progressFlow {
+      from { background-position: 0% 50%; }
+      to { background-position: 180% 50%; }
+    }
+
+    @keyframes dotPulse {
+      0%, 100% { transform: scale(1); opacity: 0.85; }
+      50% { transform: scale(1.18); opacity: 1; }
+    }
+
+    @keyframes dotRing {
+      0% { transform: scale(0.72); opacity: 0.75; }
+      100% { transform: scale(1.8); opacity: 0; }
+    }
+
+    @keyframes statusFadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     /* ===== Resume Info ===== */
@@ -729,7 +841,7 @@
           <p v-else class="file-info">{{ selectedFile.name }} <span class="file-size">({{ formatSize(selectedFile.size) }})</span></p>
           <input type="file" ref="fileInput" style="display:none" @change="handleSelect" />
         </div>
-        <button class="btn-upload" :disabled="!token || !selectedFile || uploading" @click="upload">
+        <button class="btn-upload" :class="{ 'is-busy': uploading, 'is-ready': token && selectedFile && !uploading }" :disabled="!token || !selectedFile || uploading" @click="upload">
           {{ uploadButtonText }}
         </button>
 
@@ -744,9 +856,12 @@
         </div>
 
         <!-- Hash 计算中 -->
-        <div v-if="status === 'hashing'" class="status-indicator">
+        <div v-if="status === 'hashing'" class="status-indicator status-indicator-progress">
           <span class="status-dot"></span>
-          <span>正在计算文件指纹... <span v-if="hashProgress > 0" class="hash-progress">({{ hashProgress }}%)</span></span>
+          <div class="status-body">
+            <div>正在计算文件指纹... <span v-if="hashProgress > 0" class="hash-progress">{{ hashProgress }}%</span></div>
+            <div class="hash-meter"><div class="hash-meter-fill" :style="{ width: hashProgress + '%' }"></div></div>
+          </div>
         </div>
 
         <!-- 检查中 -->
@@ -805,69 +920,6 @@
   </div>
   <script>
     const { createApp, ref, computed } = Vue;
-
-    // ====== 内联 Web Worker (Blob URL) - 流式 SHA-256 ======
-    var WORKER_URL = URL.createObjectURL(new Blob([[
-      'self.onmessage = async function(e) {',
-      '  var file = e.data;',
-      '  var CHUNK_SIZE = 4 * 1024 * 1024;',
-      '  var totalBytes = file.size;',
-      '  var chunks = Math.ceil(totalBytes / CHUNK_SIZE);',
-      '  var offset = 0;',
-      '  try {',
-      // Minimal SHA-256 implementation
-      '    var K = new Uint32Array([0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2]);',
-      '    var h0=0x6a09e667,h1=0xbb67ae85,h2=0x3c6ef372,h3=0xa54ff53a,h4=0x510e527f,h5=0x9b05688c,h6=0x1f83d9ab,h7=0x5be0cd19;',
-      '    var totalLen = 0;',
-      '    var pending = new Uint8Array(0);',
-      '    function processChunk(data) {',
-      '      var combined = new Uint8Array(pending.length + data.length);',
-      '      combined.set(pending);',
-      '      combined.set(data, pending.length);',
-      '      var len = combined.length;',
-      '      var nBlocks = Math.floor(len / 64);',
-      '      for (var b = 0; b < nBlocks; b++) {',
-      '        var w = new Uint32Array(64);',
-      '        for (var i = 0; i < 16; i++) w[i] = combined[b*64+i*4]<<24|combined[b*64+i*4+1]<<16|combined[b*64+i*4+2]<<8|combined[b*64+i*4+3];',
-      '        for (var i = 16; i < 64; i++) { var s0 = ((w[i-15]>>>7)|(w[i-15]<<25))^((w[i-15]>>>18)|(w[i-15]<<14))^(w[i-15]>>>3); var s1 = ((w[i-2]>>>17)|(w[i-2]<<15))^((w[i-2]>>>19)|(w[i-2]<<13))^(w[i-2]>>>10); w[i] = (w[i-16]+s0+w[i-7]+s1)|0; }',
-      '        var a=h0,b=h1,c=h2,d=h3,e=h4,f=h5,g=h6,h=h7;',
-      '        for (var i = 0; i < 64; i++) { var S1 = ((e>>>6)|(e<<26))^((e>>>11)|(e<<21))^((e>>>25)|(e<<7)); var ch = (e&f)^(~e&g); var temp1 = (h+S1+ch+K[i]+w[i])|0; var S0 = ((a>>>2)|(a<<30))^((a>>>13)|(a<<19))^((a>>>22)|(a<<10)); var maj = (a&b)^(a&c)^(b&c); var temp2 = (S0+maj)|0; h=g;g=f;f=e;e=(d+temp1)|0;d=c;c=b;b=a;a=(temp1+temp2)|0; }',
-      '        h0=(h0+a)|0;h1=(h1+b)|0;h2=(h2+c)|0;h3=(h3+d)|0;h4=(h4+e)|0;h5=(h5+f)|0;h6=(h6+g)|0;h7=(h7+h)|0;',
-      '      }',
-      '      pending = combined.slice(nBlocks * 64);',
-      '    }',
-      '    function finalize() {',
-      '      totalLen += pending.length;',
-      '      var bitLen = totalLen * 8;',
-      '      var padLen = pending.length + 9 <= 64 ? 64 : 128;',
-      '      var pad = new Uint8Array(padLen - pending.length);',
-      '      pad[0] = 0x80;',
-      '      pad[pad.length - 8] = (bitLen / 0x100000000) >>> 0;',
-      '      pad[pad.length - 7] = (bitLen >>> 28) & 0xff;',
-      '      pad[pad.length - 6] = (bitLen >>> 20) & 0xff;',
-      '      pad[pad.length - 5] = (bitLen >>> 12) & 0xff;',
-      '      pad[pad.length - 4] = (bitLen >>> 4) & 0xff;',
-      '      pad[pad.length - 3] = (bitLen & 0xf) << 4;',
-      '      processChunk(pad);',
-      '      var hex = function(n) { var s = ""; for (var i = 7; i >= 0; i--) { var b = (n >>> (i * 4)) & 0xf; s += b.toString(16); } return s; };',
-      '      return hex(h0)+hex(h1)+hex(h2)+hex(h3)+hex(h4)+hex(h5)+hex(h6)+hex(h7);',
-      '    }',
-      '    for (var i = 0; i < chunks; i++) {',
-      '      var start = i * CHUNK_SIZE;',
-      '      var end = Math.min(start + CHUNK_SIZE, totalBytes);',
-      '      var slice = file.slice(start, end);',
-      '      var buf = await slice.arrayBuffer();',
-      '      totalLen = end;',
-      '      processChunk(new Uint8Array(buf));',
-      '      self.postMessage({ type: "progress", loaded: Math.min(end, totalBytes), total: totalBytes });',
-      '    }',
-      '    var hashHex = finalize();',
-      '    self.postMessage({ type: "complete", hash: hashHex });',
-      '  } catch (err) {',
-      '    self.postMessage({ type: "error", message: err.message });',
-      '  }',
-      '};'
-    ].join('\n')], { type: 'application/javascript' }));
 
     // ====== 常量 ======
     var CHUNK_SIZE = 5 * 1024 * 1024;       // 5MB
@@ -929,35 +981,51 @@
           resetUploadState();
         };
 
-        // SHA256 计算（Web Worker）
-        var computeFileHash = function(file) {
-          return new Promise(function(resolve, reject) {
-            if (!crypto || !crypto.subtle || !crypto.subtle.digest) {
-              reject(new Error('当前浏览器不支持 SHA-256 计算'));
-              return;
-            }
-            if (file.size > 2 * 1024 * 1024 * 1024) {
-              reject(new Error('文件过大，暂不支持超过 2GB 的文件'));
-              return;
-            }
-            var worker = new Worker(WORKER_URL);
-            worker.onmessage = function(e) {
-              if (e.data.type === 'progress') {
-                hashProgress.value = Math.round((e.data.loaded / e.data.total) * 100);
-              } else if (e.data.type === 'complete') {
-                worker.terminate();
-                resolve(e.data.hash);
-              } else if (e.data.type === 'error') {
-                worker.terminate();
-                reject(new Error(e.data.message || '哈希计算失败'));
+        // SHA256 计算：使用浏览器原生 Web Crypto，避免手写算法与后端 Node crypto 不一致
+        var computeFileHash = async function(file) {
+          if (!crypto || !crypto.subtle || !crypto.subtle.digest) {
+            throw new Error('当前浏览器不支持 SHA-256 计算');
+          }
+          if (file.size > 2 * 1024 * 1024 * 1024) {
+            throw new Error('文件过大，暂不支持超过 2GB 的文件');
+          }
+
+          var buffer = await new Promise(function(resolve, reject) {
+            var reader = new FileReader();
+            reader.onprogress = function(e) {
+              if (e.lengthComputable && e.total > 0) {
+                hashProgress.value = Math.min(90, Math.round((e.loaded / e.total) * 90));
               }
             };
-            worker.onerror = function() {
-              worker.terminate();
+            reader.onload = function() {
+              hashProgress.value = 90;
+              resolve(reader.result);
+            };
+            reader.onerror = function() {
               reject(new Error('文件读取失败'));
             };
-            worker.postMessage(file);
+            reader.readAsArrayBuffer(file);
           });
+
+          var finalizeTimer = setInterval(function() {
+            if (hashProgress.value < 99) {
+              hashProgress.value += 1;
+            }
+          }, 120);
+
+          var digest;
+          try {
+            digest = await crypto.subtle.digest('SHA-256', buffer);
+          } finally {
+            clearInterval(finalizeTimer);
+          }
+          var bytes = new Uint8Array(digest);
+          var hash = '';
+          for (var i = 0; i < bytes.length; i++) {
+            hash += bytes[i].toString(16).padStart(2, '0');
+          }
+          hashProgress.value = 100;
+          return hash;
         };
 
         // 小文件直接上传
@@ -1096,6 +1164,7 @@
                   try {
                     await uploadSingleChunk(file, pending[si], currentUploadId, MAX_RETRIES * 3, chunkSize);
                     uploadedSet.add(pending[si]);
+                    chunkProgress.value.uploaded = uploadedSet.size;
                     progress.value = Math.round((uploadedSet.size / totalChunks) * 100);
                   } catch (e) {
                     // 串行也失败，下轮循环重新上传
@@ -1112,6 +1181,7 @@
                     try {
                       await uploadSingleChunk(file, idx, currentUploadId, MAX_RETRIES, chunkSize);
                       uploadedSet.add(idx);
+                      chunkProgress.value.uploaded = uploadedSet.size;
                       progress.value = Math.round((uploadedSet.size / totalChunks) * 100);
                     } catch (e) {
                       queue.push(idx);

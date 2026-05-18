@@ -5,6 +5,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { FileEntity } from '../../entities/file.entity';
 import { ConfigService } from '@nestjs/config';
+import { LogsService } from '../admin-logs/logs.service';
+import { formatSize } from '../../common/utils/format-size.util';
 
 @Injectable()
 export class AdminFilesService {
@@ -12,11 +14,11 @@ export class AdminFilesService {
     @InjectRepository(FileEntity)
     private fileRepo: Repository<FileEntity>,
     private configService: ConfigService,
+    private logsService: LogsService,
   ) {}
 
   async findAll(page: number, limit: number) {
     const [items, total] = await this.fileRepo.findAndCount({
-      where: { deletedAt: undefined as any },
       order: { uploadedAt: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
@@ -49,6 +51,8 @@ export class AdminFilesService {
 
     // Soft delete — sets deletedAt via @DeleteDateColumn
     await this.fileRepo.softRemove(file);
+
+    this.logsService.info(`文件已删除: ${file.originalName} (${formatSize(Number(file.size))})`);
 
     return { message: '文件已成功删除' };
   }

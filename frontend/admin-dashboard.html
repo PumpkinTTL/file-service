@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>运维中心</title>
+  <script src="/lib/vue.global.prod.js"></script>
+  <script src="/lib/axios.min.js"></script>
+  <script src="/lib/echarts.min.js"></script>
+  <style>
+    :root {
+      --primary: #2563EB;
+      --primary-hover: #1D4ED8;
+      --primary-light: #EFF6FF;
+      --success: #16A34A;
+      --success-light: #F0FDF4;
+      --danger: #DC2626;
+      --danger-light: #FEF2F2;
+      --warning: #D97706;
+      --warning-light: #FFFBEB;
+      --bg: #F8FAFC;
+      --bg-card: #FFFFFF;
+      --text: #1E293B;
+      --text-secondary: #475569;
+      --text-muted: #94A3B8;
+      --border: #E2E8F0;
+      --primary-ring: rgba(37,99,235,0.15);
+      --shadow-xs: 0 1px 2px rgba(0,0,0,0.03);
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03);
+      --shadow-md: 0 4px 16px rgba(0,0,0,0.06);
+      --radius: 12px;
+      --radius-sm: 8px;
+      --radius-xs: 6px;
+      --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px 32px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tab {
+      padding: 12px 24px;
+      background: none;
+      border: none;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: var(--transition);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+
+    .tab:hover {
+      color: var(--text);
+      background: #F1F5F9;
+    }
+
+    .tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      font-weight: 600;
+    }
+
+    .main-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .main-header-left {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+
+    .main-header-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius);
+      background: var(--primary-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+      flex-shrink: 0;
+    }
+
+    .main-header-icon svg { width: 22px; height: 22px; }
+
+    .main-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.02em;
+      line-height: 1.3;
+    }
+
+    .main-subtitle {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-top: 2px;
+      font-weight: 400;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border-radius: var(--radius-sm);
+      padding: 18px 22px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-xs);
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .stat-card:hover { box-shadow: var(--shadow-md); }
+
+    .stat-card-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .stat-card-icon.blue { background: var(--primary-light); color: var(--primary); }
+    .stat-card-icon.green { background: var(--success-light); color: var(--success); }
+    .stat-card-icon.orange { background: var(--warning-light); color: var(--warning); }
+    .stat-card-icon svg { width: 22px; height: 22px; }
+
+    .stat-card-body { flex: 1; }
+
+    .stat-card-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+    }
+
+    .stat-card-value.blue { color: var(--primary); }
+    .stat-card-value.green { color: var(--success); }
+
+    .stat-card-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-top: 2px;
+    }
+
+    .chart-card {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 24px;
+    }
+
+    .chart-header {
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      gap: 12px;
+    }
+
+    .chart-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .chart-title svg { width: 16px; height: 16px; color: var(--primary); }
+
+    .chart-body { padding: 20px; height: 300px; }
+
+    .table-card {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .table-header {
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      gap: 12px;
+    }
+
+    .table-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .table-title svg { width: 16px; height: 16px; color: var(--primary); }
+
+    .table-wrapper { overflow-x: auto; }
+
+    table { width: 100%; border-collapse: collapse; min-width: 640px; }
+
+    thead { background: var(--bg); }
+
+    th {
+      padding: 12px 20px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 14px 20px;
+      font-size: 14px;
+      border-bottom: 1px solid #F1F5F9;
+      color: var(--text-secondary);
+      vertical-align: middle;
+    }
+
+    tbody tr { transition: var(--transition); }
+
+    tbody tr:last-child td { border-bottom: none; }
+
+    tbody tr:hover td { background: #FAFBFC; }
+
+    tbody tr:nth-child(even) td { background: #FAFBFC; }
+
+    tbody tr:nth-child(even):hover td { background: #F1F5F9; }
+
+    .td-mono {
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .td-actions { white-space: nowrap; display: flex; gap: 6px; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: var(--radius-xs);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: var(--transition);
+      font-family: inherit;
+      line-height: 1.4;
+      white-space: nowrap;
+    }
+
+    .btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .btn-primary:hover { background: var(--primary-hover); }
+
+    .btn-danger {
+      background: var(--danger-light);
+      color: var(--danger);
+    }
+
+    .btn-danger:hover { background: #FEE2E2; }
+
+    .btn-ghost {
+      background: var(--bg);
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+    }
+
+    .btn-ghost:hover {
+      background: #F1F5F9;
+      color: var(--text);
+      border-color: var(--text-muted);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+
+    .badge-green {
+      background: var(--success-light);
+      color: var(--success);
+    }
+
+    .badge-red {
+      background: var(--danger-light);
+      color: var(--danger);
+    }
+
+    .badge-yellow {
+      background: var(--warning-light);
+      color: var(--warning);
+    }
+
+    .log-line {
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .log-highlight {
+      background: #FEF3C7;
+      padding: 0 2px;
+      border-radius: 2px;
+    }
+
+    .empty {
+      padding: 60px 24px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+
+    .empty-icon {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 18px;
+      border-radius: var(--radius);
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+    }
+
+    .empty-icon svg { width: 28px; height: 28px; }
+
+    .empty p { font-size: 14px; line-height: 1.6; max-width: 280px; margin: 0 auto; }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.4);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-md);
+      width: 400px;
+      max-width: 90vw;
+      padding: 24px;
+    }
+
+    .modal-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 16px;
+    }
+
+    .modal-options {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .modal-option {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: var(--transition);
+      background: var(--bg-card);
+    }
+
+    .modal-option:hover,
+    .modal-option.selected {
+      border-color: var(--primary);
+      background: var(--primary-light);
+    }
+
+    .modal-option input[type="radio"] { display: none; }
+
+    .modal-option-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-xs);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .modal-option-icon.blue { background: var(--primary-light); color: var(--primary); }
+    .modal-option-icon.green { background: var(--success-light); color: var(--success); }
+    .modal-option-icon.orange { background: var(--warning-light); color: var(--warning); }
+    .modal-option-icon svg { width: 18px; height: 18px; }
+
+    .modal-option-body { flex: 1; }
+    .modal-option-label { font-size: 14px; font-weight: 600; color: var(--text); }
+    .modal-option-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .modal-fields {
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .modal-field label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+
+    .modal-field input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xs);
+      font-size: 14px;
+      font-family: inherit;
+      background: var(--bg);
+      color: var(--text);
+      transition: var(--transition);
+      outline: none;
+    }
+
+    .modal-field input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-ring);
+    }
+
+    .modal-field input::placeholder {
+      color: var(--text-muted);
+    }
+
+    @media (max-width: 1024px) {
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .container { padding: 20px 24px; }
+    }
+
+    @media (max-width: 640px) {
+      .tabs { overflow-x: auto; flex-wrap: nowrap; }
+      .tab { flex-shrink: 0; }
+      .stats { grid-template-columns: 1fr; }
+      .main-header-icon { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="container">
+      <div class="tabs">
+        <button class="tab" :class="{ active: tab === 'monitor' }" @click="tab = 'monitor'">
+          监控面板
+        </button>
+        <button class="tab" :class="{ active: tab === 'logs' }" @click="tab = 'logs'">
+          日志查询
+        </button>
+        <button class="tab" :class="{ active: tab === 'backup' }" @click="tab = 'backup'">
+          备份管理
+        </button>
+      </div>
+
+      <!-- Monitor Tab -->
+      <div v-if="tab === 'monitor'">
+        <div class="main-header">
+          <div class="main-header-left">
+            <div class="main-header-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            </div>
+            <div>
+              <div class="main-title">监控面板</div>
+              <div class="main-subtitle">实时系统状态与上传统计</div>
+            </div>
+          </div>
+          <button class="btn btn-ghost" @click="loadMonitorStats">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            刷新
+          </button>
+        </div>
+        <div class="stats">
+          <div class="stat-card">
+            <div class="stat-card-icon blue">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+            </div>
+            <div class="stat-card-body">
+              <div class="stat-card-value blue">{{ sys.cpu.usage }}%</div>
+              <div class="stat-card-label">CPU 使用率（{{ sys.cpu.cores }} 核）</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon green">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="10" x2="6" y2="14"/><line x1="10" y1="10" x2="10" y2="14"/><line x1="14" y1="10" x2="14" y2="14"/><line x1="18" y1="10" x2="18" y2="14"/></svg>
+            </div>
+            <div class="stat-card-body">
+              <div class="stat-card-value green">{{ formatSize(sys.memory.used) }} / {{ formatSize(sys.memory.total) }}</div>
+              <div class="stat-card-label">内存使用（{{ sys.memory.usagePercent }}%）</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon blue">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div class="stat-card-body">
+              <div class="stat-card-value blue">{{ formatUptime(sys.uptime) }}</div>
+              <div class="stat-card-label">系统运行时长</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 磁盘列表 -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>
+              磁盘状态
+            </div>
+          </div>
+          <div style="padding: 16px 24px;">
+            <div v-for="disk in sys.disks" :key="disk.mount" style="margin-bottom: 16px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-weight: 600; font-size: 14px; color: var(--text);">{{ disk.mount }}</span>
+                  <span v-if="disk.isUploadDisk" class="badge badge-green">上传盘</span>
+                </div>
+                <span style="font-size: 13px; color: var(--text-secondary);">
+                  {{ formatSize(disk.used) }} / {{ formatSize(disk.total) }}
+                  <span :style="{ color: disk.usagePercent > 80 ? 'var(--danger)' : 'var(--text-muted)', fontWeight: 600 }">({{ disk.usagePercent }}%)</span>
+                </span>
+              </div>
+              <div style="height: 8px; background: #F1F5F9; border-radius: 4px; overflow: hidden;">
+                <div :style="{
+                  width: disk.usagePercent + '%',
+                  height: '100%',
+                  borderRadius: '4px',
+                  background: disk.usagePercent > 80 ? 'var(--danger)' : disk.usagePercent > 60 ? 'var(--warning)' : 'var(--success)',
+                  transition: 'width 0.6s ease'
+                }"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+              上传统计（最近 24 小时）
+            </div>
+          </div>
+          <div class="chart-body" ref="uploadChart"></div>
+        </div>
+      </div>
+
+      <!-- Logs Tab -->
+      <div v-if="tab === 'logs'">
+        <div class="main-header">
+          <div class="main-header-left">
+            <div class="main-header-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            </div>
+            <div>
+              <div class="main-title">日志查询</div>
+              <div class="main-subtitle">系统日志记录与检索</div>
+            </div>
+          </div>
+        </div>
+        <div class="table-card">
+          <div class="table-header">
+            <div style="display:flex;gap:12px;flex:1;align-items:center;">
+              <select v-model="logFilters.level" @change="loadLogs" style="padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--bg);color:var(--text);">
+                <option value="">全部级别</option>
+                <option value="error">Error</option>
+                <option value="warn">Warn</option>
+                <option value="info">Info</option>
+                <option value="debug">Debug</option>
+              </select>
+              <input v-model="logFilters.keyword" @keyup.enter="loadLogs" placeholder="搜索关键字..." style="padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--bg);color:var(--text);width:240px;" />
+              <button class="btn btn-primary" @click="loadLogs">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                搜索
+              </button>
+            </div>
+          </div>
+          <div class="table-wrapper" v-if="logs.length">
+            <table>
+              <thead><tr><th>时间</th><th>级别</th><th>消息</th></tr></thead>
+              <tbody>
+                <tr v-for="log in logs" :key="log.id">
+                  <td class="td-mono" style="font-size:12px;">{{ formatDateTime(log.timestamp) }}</td>
+                  <td><span class="badge" :class="getLogBadgeClass(log.level)">{{ log.level }}</span></td>
+                  <td><span class="log-line" v-html="highlightKeyword(log.message, logFilters.keyword)"></span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div v-else class="empty">
+            <div class="empty-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+            <p>暂无日志记录</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Backup Tab -->
+      <div v-if="tab === 'backup'">
+        <div class="main-header">
+          <div class="main-header-left">
+            <div class="main-header-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            </div>
+            <div>
+              <div class="main-title">备份管理</div>
+              <div class="main-subtitle">数据库与文件备份</div>
+            </div>
+          </div>
+          <button class="btn btn-primary" @click="triggerBackup">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            手动备份
+          </button>
+        </div>
+        <div class="stats">
+          <div class="stat-card">
+            <div class="stat-card-icon blue">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </div>
+            <div class="stat-card-body">
+              <div class="stat-card-value blue">{{ backups.length }}</div>
+              <div class="stat-card-label">总备份数</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon green">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <div class="stat-card-body">
+              <div class="stat-card-value green">{{ formatSize(backupStats.totalSize || 0) }}</div>
+              <div class="stat-card-label">备份总大小</div>
+            </div>
+          </div>
+        </div>
+        <div class="table-card">
+          <div class="table-header">
+            <div class="table-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              备份列表
+            </div>
+          </div>
+          <div class="table-wrapper" v-if="backups.length">
+            <table>
+              <thead><tr><th>ID</th><th>类型</th><th>大小</th><th>备注</th><th>创建时间</th><th>操作</th></tr></thead>
+              <tbody>
+                <tr v-for="b in backups" :key="b.id">
+                  <td class="td-mono">{{ b.id.substring(0, 8) }}...</td>
+                  <td><span class="badge" :class="b.type === 'database' ? 'badge-green' : 'badge-yellow'">{{ b.type === 'database' ? '数据库' : '文件' }}</span></td>
+                  <td>{{ formatSize(b.size) }}</td>
+                  <td style="font-size:13px;color:var(--text-secondary);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" :title="b.remark || ''">{{ b.remark || '-' }}</td>
+                  <td style="font-size:13px;color:var(--text-muted);">{{ formatDateTime(b.createdAt) }}</td>
+                  <td>
+                    <div class="td-actions">
+                      <button class="btn btn-ghost" @click="downloadBackup(b.id)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        下载
+                      </button>
+                      <button class="btn btn-danger" @click="deleteBackup(b.id)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        删除
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div v-else class="empty">
+            <div class="empty-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            </div>
+            <p>暂无备份，点击"手动备份"创建第一个备份</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 备份类型选择弹窗 -->
+    <div v-if="backupModal" class="modal-overlay" @click.self="backupModal = false">
+      <div class="modal">
+        <div class="modal-title">创建备份</div>
+        <div class="modal-options">
+          <label class="modal-option" :class="{ selected: backupType === 'all' }" @click="backupType = 'all'">
+            <input type="radio" name="backupType" value="all" />
+            <div class="modal-option-icon orange">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            </div>
+            <div class="modal-option-body">
+              <div class="modal-option-label">全部备份</div>
+              <div class="modal-option-desc">同时备份数据库和文件元数据</div>
+            </div>
+          </label>
+          <label class="modal-option" :class="{ selected: backupType === 'database' }" @click="backupType = 'database'">
+            <input type="radio" name="backupType" value="database" />
+            <div class="modal-option-icon blue">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+            </div>
+            <div class="modal-option-body">
+              <div class="modal-option-label">仅数据库</div>
+              <div class="modal-option-desc">备份所有数据库表数据</div>
+            </div>
+          </label>
+          <label class="modal-option" :class="{ selected: backupType === 'files' }" @click="backupType = 'files'">
+            <input type="radio" name="backupType" value="files" />
+            <div class="modal-option-icon green">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+            </div>
+            <div class="modal-option-body">
+              <div class="modal-option-label">仅文件元数据</div>
+              <div class="modal-option-desc">备份上传目录元数据信息</div>
+            </div>
+          </label>
+        </div>
+        <div class="modal-fields">
+          <div class="modal-field">
+            <label>文件名前缀</label>
+            <input v-model="backupName" placeholder="如 prod-daily（默认 backup）" maxlength="32" />
+          </div>
+          <div class="modal-field">
+            <label>备注</label>
+            <input v-model="backupRemark" placeholder="如 上线前备份（可选）" maxlength="200" />
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" @click="backupModal = false">取消</button>
+          <button class="btn btn-primary" @click="executeBackup">开始备份</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const { createApp, ref, reactive, onMounted, onUnmounted, watch, nextTick } = Vue;
+    const http = axios.create();
+    http.interceptors.request.use((config) => {
+      const token = localStorage.getItem('admin_token');
+      if (token) config.headers.Authorization = 'Bearer ' + token;
+      return config;
+    });
+    http.interceptors.response.use(null, (err) => {
+      if (err.response?.status === 401) {
+        window.parent.postMessage({ type: 'auth-failed' }, window.location.origin);
+      }
+      return Promise.reject(err);
+    });
+
+    createApp({
+      setup() {
+        const tab = ref('monitor');
+        const sys = reactive({
+          cpu: { usage: 0, cores: 0, loadAvg: [0, 0, 0] },
+          memory: { total: 0, used: 0, free: 0, usagePercent: 0 },
+          disks: [],
+          uptime: 0,
+        });
+        const uploadStats = ref(Array(24).fill(0));
+        const uploadChart = ref(null);
+        const uploadChartInstance = ref(null);
+        const logs = ref([]);
+        const logFilters = reactive({ level: '', keyword: '' });
+        const backups = ref([]);
+        const backupStats = reactive({ totalSize: 0 });
+        const backupModal = ref(false);
+        const backupType = ref('all');
+        const backupName = ref('');
+        const backupRemark = ref('');
+
+        const formatSize = (b) => {
+          if (!b) return '0 B';
+          const u = ['B','KB','MB','GB'];
+          let i = 0, s = Number(b);
+          while (s >= 1024 && i < u.length - 1) { s /= 1024; i++; }
+          return s.toFixed(2) + ' ' + u[i];
+        };
+
+        const formatDateTime = (d) => {
+          if (!d) return '-';
+          return new Date(d).toLocaleString('zh-CN');
+        };
+
+        const formatUptime = (seconds) => {
+          if (!seconds) return '-';
+          const d = Math.floor(seconds / 86400);
+          const h = Math.floor((seconds % 86400) / 3600);
+          const m = Math.floor((seconds % 3600) / 60);
+          if (d > 0) return `${d}天 ${h}小时`;
+          if (h > 0) return `${h}小时 ${m}分`;
+          return `${m}分钟`;
+        };
+
+        const loadMonitorStats = async () => {
+          try {
+            const res = await http.get('/admin/health/stats');
+            const data = res.data.data || res.data;
+            if (data.system) Object.assign(sys, data.system);
+            if (data.uploadStats?.hours) uploadStats.value = data.uploadStats.hours;
+            await nextTick();
+            initUploadChart();
+          } catch (e) {
+            console.error('加载监控数据失败:', e); alert('加载监控数据失败，请刷新重试');
+          }
+        };
+
+        const initUploadChart = () => {
+          if (!uploadChart.value) return;
+          if (uploadChartInstance.value) {
+            uploadChartInstance.value.dispose();
+          }
+          uploadChartInstance.value = echarts.init(uploadChart.value);
+          const hours = Array.from({ length: 24 }, (_, i) => `${i}:00`);
+          uploadChartInstance.value.setOption({
+            tooltip: { trigger: 'axis' },
+            grid: { left: '3%', right: '4%', bottom: '3%', top: '10%', containLabel: true },
+            xAxis: { type: 'category', data: hours, boundaryGap: false },
+            yAxis: { type: 'value' },
+            series: [{
+              name: '上传文件数',
+              type: 'line',
+              smooth: true,
+              areaStyle: { opacity: 0.3, color: '#2563EB' },
+              itemStyle: { color: '#2563EB' },
+              lineStyle: { color: '#2563EB', width: 2 },
+              data: uploadStats.value
+            }]
+          });
+        };
+
+        const loadLogs = async () => {
+          try {
+            const res = await http.get('/admin/logs', {
+              params: { level: logFilters.level || undefined, keyword: logFilters.keyword || undefined, limit: 100 }
+            });
+            logs.value = res.data.data || res.data || [];
+          } catch (e) {
+            console.error('加载日志失败:', e); alert('加载日志失败，请刷新重试');
+          }
+        };
+
+        const getLogBadgeClass = (level) => {
+          const map = { error: 'badge-red', warn: 'badge-yellow', info: 'badge-green', debug: 'badge-green' };
+          return map[level] || 'badge-green';
+        };
+
+        const escapeHtml = (str) => {
+          const div = document.createElement('div');
+          div.textContent = str;
+          return div.innerHTML;
+        };
+
+        const highlightKeyword = (msg, keyword) => {
+          const safe = escapeHtml(msg);
+          if (!keyword) return safe;
+          const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const regex = new RegExp(`(${escaped})`, 'gi');
+          return safe.replace(regex, '<span class="log-highlight">$1</span>');
+        };
+
+        const loadBackups = async () => {
+          try {
+            const res = await http.get('/admin/backup/status');
+            backups.value = res.data.data?.backups || res.data || [];
+            backupStats.totalSize = backups.value.reduce((sum, b) => sum + (b.size || 0), 0);
+          } catch (e) {
+            console.error('加载备份列表失败:', e);
+          }
+        };
+
+        const triggerBackup = () => {
+          backupType.value = 'all';
+          backupName.value = '';
+          backupRemark.value = '';
+          backupModal.value = true;
+        };
+
+        const executeBackup = async () => {
+          backupModal.value = false;
+          try {
+            const body = {};
+            if (backupType.value !== 'all') body.type = backupType.value;
+            if (backupName.value.trim()) body.name = backupName.value.trim();
+            if (backupRemark.value.trim()) body.remark = backupRemark.value.trim();
+            await http.post('/admin/backup/trigger', body);
+            alert('备份任务已完成');
+            loadBackups();
+          } catch (e) {
+            alert(e.response?.data?.message || '备份失败');
+          }
+        };
+
+        const downloadBackup = async (id) => {
+          try {
+            const res = await http.get(`/admin/backup/download/${id}`, { responseType: 'blob' });
+            const url = URL.createObjectURL(res.data);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `backup-${id.substring(0, 8)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+          } catch (e) {
+            alert('下载失败');
+          }
+        };
+
+        const deleteBackup = async (id) => {
+          if (!confirm('确认删除此备份？删除后无法恢复。')) return;
+          try {
+            await http.delete(`/admin/backup/${id}`);
+            loadBackups();
+          } catch (e) {
+            alert(e.response?.data?.message || '删除失败');
+          }
+        };
+
+        watch(tab, (newTab) => {
+          if (newTab === 'monitor') loadMonitorStats();
+          else if (newTab === 'logs') loadLogs();
+          else if (newTab === 'backup') loadBackups();
+        });
+
+        onMounted(() => {
+          const t = localStorage.getItem('admin_token');
+          if (!t) {
+            window.parent.postMessage({ type: 'auth-failed' }, window.location.origin);
+            return;
+          }
+          loadMonitorStats();
+        });
+
+        onUnmounted(() => {
+          if (uploadChartInstance.value) {
+            uploadChartInstance.value.dispose();
+            uploadChartInstance.value = null;
+          }
+        });
+
+        return {
+          tab, sys, uploadStats, uploadChart, logs, logFilters, backups, backupStats,
+          backupModal, backupType, backupName, backupRemark,
+          loadMonitorStats, loadLogs, getLogBadgeClass, highlightKeyword,
+          loadBackups, triggerBackup, executeBackup, downloadBackup, deleteBackup,
+          formatSize, formatDateTime, formatUptime
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>

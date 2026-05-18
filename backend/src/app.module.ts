@@ -10,6 +10,8 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { AdminFilesModule } from './modules/admin-files/admin-files.module';
 import { AdminTokensModule } from './modules/admin-tokens/admin-tokens.module';
+import { LogsModule } from './modules/admin-logs/admin-logs.module';
+import { BackupModule } from './modules/admin-backup/admin-backup.module';
 import { FileEntity } from './entities/file.entity';
 import { UploadTokenEntity } from './entities/upload-token.entity';
 import { UploadSessionEntity } from './entities/upload-session.entity';
@@ -43,7 +45,7 @@ import { UploadSessionEntity } from './entities/upload-session.entity';
         THROTTLE_TTL: Joi.number().default(60),
         THROTTLE_LIMIT: Joi.number().default(30),
       }),
-      // Don't throw in dev when optional vars are missing — just warn
+      // Don't throw in dev when optionalopts are missing — just warn
       validationOptions: {
         allowUnknown: true,
         abortEarly: false,
@@ -73,6 +75,8 @@ import { UploadSessionEntity } from './entities/upload-session.entity';
     UploadModule,
     AdminFilesModule,
     AdminTokensModule,
+    LogsModule,
+    BackupModule,
   ],
   providers: [
     // Global throttler guard — rate limiting on all endpoints

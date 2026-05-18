@@ -35,18 +35,18 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const maxFileSize = configService.get<number>('maxFileSize') || maxSize;
 
-  // Security headers (helmet) — CSP allows unpkg CDN + inline scripts for frontend
+  // Security headers (helmet) — all JS/CSS served locally, no external CDN dependencies
   await app.register(helmet, {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://unpkg.com", "blob:"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "blob:"],
         workerSrc: ["'self'", "blob:"],
         scriptSrcAttr: ["'unsafe-inline'"],
-        styleSrc: ["'self'", "'unsafe-inline'", "https:"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", "data:"],
-        fontSrc: ["'self'", "https:", "data:"],
-        connectSrc: ["'self'", "https://unpkg.com"],
+        fontSrc: ["'self'", "data:"],
+        connectSrc: ["'self'"],
         formAction: ["'self'"],
         frameAncestors: ["'self'"],
         objectSrc: ["'none'"],

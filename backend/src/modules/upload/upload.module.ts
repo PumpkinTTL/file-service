@@ -6,9 +6,13 @@ import { FileEntity } from '../../entities/file.entity';
 import { UploadTokenEntity } from '../../entities/upload-token.entity';
 import { UploadSessionEntity } from '../../entities/upload-session.entity';
 import { UploadTokenGuard } from '../../common/guards/upload-token.guard';
+import { LogsModule } from '../admin-logs/admin-logs.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([FileEntity, UploadTokenEntity, UploadSessionEntity])],
+  imports: [
+    TypeOrmModule.forFeature([FileEntity, UploadTokenEntity, UploadSessionEntity]),
+    LogsModule,
+  ],
   controllers: [UploadController],
   providers: [UploadService, UploadTokenGuard],
 })

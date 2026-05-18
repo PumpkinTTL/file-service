@@ -3,16 +3,17 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as crypto from 'crypto';
 import { UploadTokenEntity } from '../../entities/upload-token.entity';
+import { LogsService } from '../admin-logs/logs.service';
 
 @Injectable()
 export class AdminTokensService {
   constructor(
     @InjectRepository(UploadTokenEntity)
     private tokenRepo: Repository<UploadTokenEntity>,
+    private logsService: LogsService,
   ) {}
 
   async create(dto: { name: string; description?: string; expiresAt?: string }) {
-    // Generate a secure random token
     const rawToken = `fs_${crypto.randomBytes(32).toString('hex')}`;
     const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
     const tokenPrefix = rawToken.substring(0, 8);
@@ -27,6 +28,8 @@ export class AdminTokensService {
     });
 
     await this.tokenRepo.save(entity);
+
+    this.logsService.info(`Token 已创建: ${dto.name} (${tokenPrefix}***)`);
 
     // Return raw token ONLY on creation (never stored)
     return {
@@ -62,13 +65,17 @@ export class AdminTokensService {
   }
 
   async setEnabled(id: number, enabled: boolean) {
-    const result = await this.tokenRepo.update(id, {
+    const token = await this.tokenRepo.findOne({ where: { id } });
+    if (!token) {
+      throw new NotFoundException('令牌未找到');
+    }
+
+    await this.tokenRepo.update(id, {
       enabled,
       revokedAt: enabled ? null : new Date(),
     });
-    if (result.affected === 0) {
-      throw new NotFoundException('令牌未找到');
-    }
+
+    this.logsService.info(`Token 状态变更: ${token.name} → ${enabled ? '启用' : '禁用'}`);
     return { id, enabled };
   }
 
@@ -89,6 +96,8 @@ export class AdminTokensService {
       enabled: true,
     });
 
+    this.logsService.info(`Token 已轮换: ${token.name} (新前缀: ${tokenPrefix}***)`);
+
     return {
       id,
       name: token.name,
@@ -99,10 +108,13 @@ export class AdminTokensService {
   }
 
   async remove(id: number) {
-    const result = await this.tokenRepo.delete(id);
-    if (result.affected === 0) {
+    const token = await this.tokenRepo.findOne({ where: { id } });
+    if (!token) {
       throw new NotFoundException('令牌未找到');
     }
+
+    await this.tokenRepo.delete(id);
+    this.logsService.info(`Token 已删除: ${token.name}`);
     return { message: '令牌已成功删除' };
   }
 }
