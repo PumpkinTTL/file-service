@@ -99,12 +99,10 @@ export class AdminTokensService {
   }
 
   async remove(id: number) {
-    const token = await this.tokenRepo.findOne({ where: { id } });
-    if (!token) {
+    const result = await this.tokenRepo.delete(id);
+    if (result.affected === 0) {
       throw new NotFoundException('令牌未找到');
     }
-
-    await this.tokenRepo.remove(token);
     return { message: '令牌已成功删除' };
   }
 }
