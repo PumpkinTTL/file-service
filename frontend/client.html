@@ -6,6 +6,7 @@
   <title>File Service - 上传</title>
   <script src="/lib/vue.global.prod.js"></script>
   <script src="/lib/axios.min.js"></script>
+  <script src="/lib/toast.js"></script>
   <style>
     /* ===== Design Tokens ===== */
     :root {
@@ -1232,12 +1233,12 @@
           var file = selectedFile.value;
 
           if (!crypto || !crypto.subtle || !crypto.subtle.digest) {
-            alert('当前浏览器不支持 SHA-256 计算，请使用现代浏览器');
+            Toast.error('当前浏览器不支持 SHA-256 计算，请使用现代浏览器');
             uploading.value = false;
             return;
           }
           if (file.size > 2 * 1024 * 1024 * 1024) {
-            alert('文件过大，暂不支持超过 2GB 的文件');
+            Toast.error('文件过大，暂不支持超过 2GB 的文件');
             uploading.value = false;
             return;
           }
@@ -1279,12 +1280,12 @@
           } catch (e) {
             var msg = (e.response && e.response.data && e.response.data.message) || e.message || '未知错误';
             if (e.response && e.response.status === 401) {
-              alert('Token 无效或已过期，请重新输入');
+              Toast.error('Token 无效或已过期，请重新输入');
             } else if (status.value === 'hashing') {
-              alert('文件指纹计算失败，请重试');
+              Toast.error('文件指纹计算失败，请重试');
             } else {
               status.value = 'idle';
-              alert(msg);
+              Toast.error(msg);
             }
           } finally {
             uploading.value = false;
@@ -1294,7 +1295,7 @@
         // 复制
         var copy = function(text) {
           navigator.clipboard.writeText(text).then(function() {
-            alert('已复制到剪贴板');
+            Toast.success('已复制到剪贴板');
           });
         };
 

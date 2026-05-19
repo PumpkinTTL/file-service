@@ -6,43 +6,35 @@
   <title>File Service - 管理后台</title>
   <script src="/lib/vue.global.prod.js"></script>
   <script src="/lib/axios.min.js"></script>
+  <script src="/lib/toast.js"></script>
   <style>
     /* ============================================================
-       CSS Custom Properties — Design System
+       CSS Custom Properties
        ============================================================ */
     :root {
+      --bg: #F5F5F7;
+      --text: #1D1D1F;
+      --sidebar-w: 260px;
+      /* SaaS Design Tokens */
       --primary: #2563EB;
       --primary-hover: #1D4ED8;
-      --primary-light: #EFF6FF;
-      --primary-ring: rgba(37,99,235,0.15);
-      --secondary: #3B82F6;
-      --accent: #F97316;
-      --accent-hover: #EA580C;
-      --accent-light: #FFF7ED;
-      --success: #16A34A;
-      --success-light: #F0FDF4;
-      --danger: #DC2626;
-      --danger-light: #FEF2F2;
-      --warning: #D97706;
-      --warning-light: #FFFBEB;
-      --bg: #F8FAFC;
-      --bg-card: #FFFFFF;
-      --bg-sidebar: #FFFFFF;
-      --bg-subtle: #F1F5F9;
-      --text: #1E293B;
-      --text-secondary: #475569;
-      --text-muted: #94A3B8;
+      --primary-light: #EEF4FF;
+      --orange: #F97316;
+      --red: #DC2626;
+      --green: #16A34A;
+      --yellow: #D97706;
+      --text-heading: #0F172A;
+      --text-body: #334155;
+      --text-muted: #64748B;
+      --text-faint: #94A3B8;
       --border: #E2E8F0;
       --border-light: #F1F5F9;
-      --shadow-xs: 0 1px 2px rgba(0,0,0,0.03);
-      --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03);
-      --shadow-md: 0 4px 16px rgba(0,0,0,0.06);
-      --radius: 12px;
-      --radius-sm: 8px;
-      --radius-xs: 6px;
-      --radius-full: 9999px;
-      --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      --sidebar-w: 260px;
+      --surface: #FFFFFF;
+      --surface-muted: #F8FAFC;
+      --radius-lg: 16px;
+      --radius-md: 12px;
+      --radius-sm: 10px;
+      --shadow-card: 0 1px 3px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.02);
     }
 
     /* ============================================================
@@ -65,38 +57,42 @@
     .layout { display: flex; min-height: 100vh; }
 
     /* ============================================================
-       Sidebar
-       ============================================================ */
+        Sidebar — Modern SaaS Accent
+        ============================================================ */
     .sidebar {
       width: var(--sidebar-w);
-      background: var(--bg-sidebar);
-      border-right: 1px solid var(--border);
+      background: #FFFFFF;
       display: flex;
       flex-direction: column;
       flex-shrink: 0;
       position: fixed;
-      top: 0;
-      left: 0;
-      bottom: 0;
+      top: 10px;
+      left: 10px;
+      bottom: 10px;
       z-index: 100;
-      transition: var(--transition);
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 20px;
+      border: 1px solid #E2E8F0;
+      box-shadow: 0 1px 3px rgba(15,23,42,0.04);
+      overflow: hidden;
     }
 
     .sidebar-brand {
-      padding: 28px 24px 22px;
+      padding: 18px 16px;
       display: flex;
       align-items: center;
       gap: 12px;
-      border-bottom: 1px solid var(--border);
-      position: relative;
-      z-index: 1;
+      border-bottom: none;
+      margin: 10px 10px 14px;
+      border-radius: 16px;
+      background: transparent;
     }
 
     .sidebar-brand-icon {
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
-      background: var(--primary);
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: #2563EB;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -116,37 +112,35 @@
     }
 
     .sidebar-brand-text span {
-      font-size: 17px;
+      font-size: 16px;
       font-weight: 700;
-      color: var(--text);
-      letter-spacing: -0.02em;
+      color: #1E293B;
+      letter-spacing: -0.01em;
       line-height: 1.2;
     }
 
     .sidebar-brand-text small {
-      font-size: 11px;
-      font-weight: 500;
-      color: var(--text-muted);
-      letter-spacing: 0.02em;
+      font-size: 12px;
+      font-weight: 400;
+      color: #64748B;
+      letter-spacing: 0.01em;
     }
 
     .sidebar-nav {
-      padding: 20px 14px;
+      padding: 0 12px 12px;
       flex: 1;
       overflow-y: auto;
-      position: relative;
-      z-index: 1;
     }
 
     .sidebar-label {
       font-size: 11px;
-      font-weight: 600;
+      font-weight: 500;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      color: var(--text-muted);
-      padding: 0 10px;
+      color: #94A3B8;
+      padding: 0 12px;
       margin-bottom: 8px;
-      margin-top: 24px;
+      margin-top: 20px;
     }
 
     .sidebar-label:first-child { margin-top: 0; }
@@ -155,77 +149,78 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 10px 14px;
-      border-radius: var(--radius-sm);
+      min-height: 46px;
+      padding: 0 14px;
+      border-radius: 13px;
       font-size: 14px;
       font-weight: 500;
       cursor: pointer;
-      transition: var(--transition);
-      color: var(--text-secondary);
+      transition: background 0.16s ease-out, color 0.16s ease-out;
+      color: #334155;
       position: relative;
       user-select: none;
-      margin-bottom: 2px;
+      margin-bottom: 4px;
     }
 
     .sidebar-item:hover {
-      background: var(--bg-subtle);
-      color: var(--text);
+      background: #F8FAFC;
+      color: #1E293B;
     }
 
     .sidebar-item.active {
-      background: var(--primary-light);
-      color: var(--primary);
+      background: #EEF4FF;
+      color: #2563EB;
       font-weight: 600;
+      box-shadow: none;
     }
 
-    .sidebar-item.active::before {
+    .sidebar-item.active::after {
       content: '';
-      position: absolute;
-      left: -14px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 3px;
-      height: 20px;
-      background: var(--primary);
-      border-radius: 0 4px 4px 0;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #F97316;
+      margin-left: auto;
+      flex-shrink: 0;
     }
 
     .sidebar-item svg {
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
       flex-shrink: 0;
-      opacity: 0.7;
+      opacity: 0.78;
+      transition: opacity 0.16s ease-out, color 0.16s ease-out;
     }
 
-    .sidebar-item.active svg { opacity: 1; }
+    .sidebar-item:hover svg { opacity: 0.9; }
+    .sidebar-item.active svg { opacity: 1; color: #2563EB; }
 
     .sidebar-footer {
-      padding: 16px 24px;
-      border-top: 1px solid var(--border);
-      position: relative;
-      z-index: 1;
+      padding: 12px 14px;
+      border-top: none;
     }
 
     .btn-logout {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       font-size: 13px;
       font-weight: 500;
-      color: var(--text-muted);
+      color: #64748B;
       cursor: pointer;
-      transition: var(--transition);
+      transition: background 0.16s ease-out, color 0.16s ease-out;
       background: none;
       border: none;
       font-family: inherit;
-      padding: 8px 10px;
+      min-height: 44px;
+      padding: 0 15px;
       width: 100%;
-      border-radius: var(--radius-xs);
+      border-radius: 13px;
     }
 
     .btn-logout:hover {
-      color: var(--danger);
-      background: var(--danger-light);
+      color: #B3261E;
+      background: #FCEEEE;
     }
 
     .btn-logout svg {
@@ -251,21 +246,21 @@
       z-index: 200;
       width: 40px;
       height: 40px;
-      border-radius: 10px;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #FFFFFF;
+      border: none;
       cursor: pointer;
       align-items: center;
       justify-content: center;
-      transition: var(--transition);
-      box-shadow: var(--shadow-sm);
-      color: var(--text-secondary);
+      transition: background 0.2s ease-out, box-shadow 0.2s ease-out;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      color: #1D1D1F;
     }
 
     .menu-toggle:hover {
-      background: var(--bg-subtle);
-      color: var(--text);
-      box-shadow: var(--shadow-md);
+      background: #F5F5F7;
+      color: #1D1D1F;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
 
     .menu-toggle svg {
@@ -294,7 +289,7 @@
 
     .sidebar-checkbox:checked ~ .sidebar {
       transform: translateX(0);
-      box-shadow: var(--shadow-md);
+      box-shadow: 4px 0 20px rgba(0,0,0,0.08);
     }
 
     /* ============================================================
@@ -302,171 +297,124 @@
        ============================================================ */
     .main {
       flex: 1;
-      margin-left: var(--sidebar-w);
-      padding: 32px;
+      margin-left: calc(var(--sidebar-w) + 24px);
+      padding: 24px 32px;
       overflow-y: auto;
       max-width: 100%;
       min-height: 100vh;
     }
 
-    .main-header {
+    /* ============================================================
+       Unified Card Header — Modern SaaS
+       ============================================================ */
+    .card-header {
+      padding: 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 24px;
-      gap: 14px;
+      gap: 16px;
       flex-wrap: wrap;
     }
 
-    .main-header-left {
+    .card-header-left {
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       gap: 14px;
+      min-width: 0;
     }
 
-    .main-header-icon {
+    .card-header-icon {
       width: 44px;
       height: 44px;
-      border-radius: var(--radius);
-      background: var(--primary-light);
+      border-radius: var(--radius-sm);
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--primary);
       flex-shrink: 0;
     }
 
-    .main-header-icon svg { width: 22px; height: 22px; }
-
-    .main-title {
-      font-size: 24px;
-      font-weight: 700;
-      color: var(--text);
-      letter-spacing: -0.02em;
-      line-height: 1.3;
+    .card-header-icon.blue {
+      background: var(--primary-light);
+      color: var(--primary);
     }
 
-    .main-subtitle {
-      font-size: 14px;
+    .card-header-icon.orange {
+      background: rgba(249,115,22,0.1);
+      color: var(--orange);
+    }
+
+    .card-header-icon svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .card-header-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-heading);
+      letter-spacing: -0.02em;
+    }
+
+    .card-header-subtitle {
+      font-size: 13px;
       color: var(--text-muted);
       margin-top: 2px;
-      font-weight: 400;
+      line-height: 1.4;
     }
 
-    /* ============================================================
-       Stats Cards
-       ============================================================ */
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    .card-header-stats {
+      display: flex;
+      align-items: center;
       gap: 16px;
-      margin-bottom: 24px;
-    }
-
-    .stat-card {
-      background: var(--bg-card);
-      border-radius: var(--radius-sm);
-      padding: 18px 22px;
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow-xs);
-      transition: var(--transition);
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      cursor: pointer;
-    }
-
-    .stat-card:hover {
-      box-shadow: var(--shadow-md);
-    }
-
-    .stat-card-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: var(--radius-sm);
-      display: flex;
-      align-items: center;
-      justify-content: center;
       flex-shrink: 0;
     }
 
-    .stat-card-icon.blue {
-      background: var(--primary-light);
-      color: var(--primary);
+    .mini-stat {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
     }
 
-    .stat-card-icon.green {
-      background: var(--success-light);
-      color: var(--success);
-    }
-
-    .stat-card-icon.orange {
-      background: var(--accent-light);
-      color: var(--accent);
-    }
-
-    .stat-card-icon svg { width: 22px; height: 22px; }
-
-    .stat-card-body { flex: 1; }
-
-    .stat-card-value {
-      font-size: 24px;
+    .mini-stat-value {
+      font-size: 20px;
       font-weight: 700;
-      color: var(--text);
-      line-height: 1.15;
+      color: var(--text-heading);
       letter-spacing: -0.02em;
+      line-height: 1.2;
     }
 
-    .stat-card-value.blue { color: var(--primary); }
+    .mini-stat-value.blue { color: var(--primary); }
 
-    .stat-card-label {
-      font-size: 12px;
+    .mini-stat-label {
+      font-size: 11px;
       font-weight: 500;
-      color: var(--text-muted);
+      color: var(--text-faint);
       text-transform: uppercase;
       letter-spacing: 0.04em;
-      margin-top: 2px;
+    }
+
+    .mini-stat-divider {
+      width: 1px;
+      height: 32px;
+      background: var(--border);
+    }
+
+    .card-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 0 24px;
     }
 
     /* ============================================================
-       Table Card
+       Table Card — Modern SaaS
        ============================================================ */
     .table-card {
-      background: var(--bg-card);
-      border-radius: var(--radius);
+      background: var(--surface);
+      border-radius: var(--radius-lg);
       border: 1px solid var(--border);
       overflow: hidden;
-      box-shadow: var(--shadow-sm);
-      transition: var(--transition);
-    }
-
-    .table-card:hover {
-      box-shadow: var(--shadow-md);
-    }
-
-    .table-header {
-      padding: 18px 24px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid var(--border);
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .table-title {
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--text);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .table-title svg {
-      width: 16px;
-      height: 16px;
-      color: var(--primary);
+      box-shadow: var(--shadow-card);
     }
 
     /* Table Wrapper for horizontal scroll */
@@ -482,13 +430,13 @@
     }
 
     thead {
-      background: var(--bg);
+      background: var(--surface-muted);
     }
 
     th {
       padding: 12px 20px;
       text-align: left;
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 600;
       color: var(--text-muted);
       text-transform: uppercase;
@@ -501,33 +449,35 @@
       padding: 14px 20px;
       font-size: 14px;
       border-bottom: 1px solid var(--border-light);
-      color: var(--text-secondary);
+      color: var(--text-body);
       vertical-align: middle;
+      line-height: 1.5;
     }
 
     tbody tr {
-      transition: var(--transition);
+      transition: background 0.15s ease-out;
     }
 
     tbody tr:last-child td { border-bottom: none; }
 
     tbody tr:hover td {
-      background: #FAFBFC;
-    }
-
-    /* Odd/even row styling */
-    tbody tr:nth-child(even) td {
-      background: #FAFBFC;
-    }
-
-    tbody tr:nth-child(even):hover td {
-      background: #F1F5F9;
+      background: var(--surface-muted);
     }
 
     .td-mono {
       font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
       font-size: 13px;
-      color: var(--text-secondary);
+      color: var(--text-muted);
+    }
+
+    .td-muted {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .td-name {
+      font-weight: 600;
+      color: var(--text-heading);
     }
 
     .td-actions {
@@ -537,20 +487,53 @@
       flex-wrap: nowrap;
     }
 
+    .td-link {
+      font-weight: 600;
+      color: var(--primary);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: color 0.15s;
+    }
+
+    .td-link:hover {
+      text-decoration: underline;
+    }
+
+    .td-link svg {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+      opacity: 0.5;
+    }
+
+    .td-hash {
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 12px;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: color 0.15s;
+    }
+
+    .td-hash:hover {
+      color: var(--primary);
+    }
+
     /* ============================================================
-       Buttons
+       Buttons — Modern SaaS
        ============================================================ */
     .btn {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 6px 14px;
-      border-radius: var(--radius-xs);
+      padding: 7px 14px;
+      border-radius: var(--radius-sm);
       font-size: 13px;
       font-weight: 500;
       cursor: pointer;
       border: none;
-      transition: var(--transition);
+      transition: background 0.15s ease-out, color 0.15s ease-out, box-shadow 0.15s ease-out;
       font-family: inherit;
       line-height: 1.4;
       white-space: nowrap;
@@ -563,87 +546,87 @@
     .btn-primary {
       background: var(--primary);
       color: #fff;
+      box-shadow: 0 1px 3px rgba(37,99,235,0.2);
     }
 
     .btn-primary:hover {
       background: var(--primary-hover);
+      box-shadow: 0 2px 8px rgba(37,99,235,0.25);
     }
 
     .btn-danger {
-      background: var(--danger-light);
-      color: var(--danger);
+      background: rgba(220,38,38,0.08);
+      color: var(--red);
     }
 
     .btn-danger:hover {
-      background: #FEE2E2;
+      background: rgba(220,38,38,0.14);
     }
 
     .btn-warning {
-      background: var(--warning-light);
-      color: var(--warning);
+      background: rgba(217,119,6,0.08);
+      color: var(--yellow);
     }
 
     .btn-warning:hover {
-      background: #FEF3C7;
+      background: rgba(217,119,6,0.14);
     }
 
     .btn-success {
-      background: var(--success-light);
-      color: var(--success);
+      background: rgba(22,163,74,0.08);
+      color: var(--green);
     }
 
     .btn-success:hover {
-      background: #DCFCE7;
+      background: rgba(22,163,74,0.14);
     }
 
     .btn-ghost {
-      background: var(--bg);
-      color: var(--text-secondary);
-      border: 1px solid var(--border);
+      background: rgba(0,0,0,0.03);
+      color: var(--text-body);
+      border: none;
     }
 
     .btn-ghost:hover {
-      background: var(--bg-subtle);
-      color: var(--text);
-      border-color: var(--text-muted);
+      background: rgba(0,0,0,0.06);
     }
 
     .btn-create {
-      padding: 10px 22px;
+      padding: 9px 18px;
       font-size: 14px;
       font-weight: 600;
       border-radius: var(--radius-sm);
     }
 
     .btn-lg {
-      padding: 10px 20px;
+      padding: 9px 18px;
       font-size: 14px;
       font-weight: 600;
       border-radius: var(--radius-sm);
     }
 
     /* ============================================================
-       Badge
+       Badge — Modern SaaS
        ============================================================ */
     .badge {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 4px 12px;
-      border-radius: var(--radius-full);
+      padding: 3px 10px;
+      border-radius: 999px;
       font-size: 12px;
       font-weight: 600;
-      line-height: 1.4;
+      line-height: 1.5;
     }
 
     .badge-green {
-      background: var(--success-light);
-      color: var(--success);
+      background: rgba(22,163,74,0.1);
+      color: var(--green);
     }
 
     .badge-red {
-      background: var(--danger-light);
-      color: var(--danger);
+      background: rgba(220,38,38,0.1);
+      color: var(--red);
     }
 
     .badge-dot {
@@ -653,18 +636,18 @@
       flex-shrink: 0;
     }
 
-    .badge-green .badge-dot { background: var(--success); }
-    .badge-red .badge-dot { background: var(--danger); }
+    .badge-green .badge-dot { background: var(--green); }
+    .badge-red .badge-dot { background: var(--red); }
 
     /* ============================================================
-       Token Creation Form
+       Token Creation Form — Modern SaaS
        ============================================================ */
     .create-form {
       display: flex;
-      gap: 14px;
+      gap: 12px;
       align-items: flex-end;
-      padding: 20px 24px;
-      background: var(--bg);
+      padding: 18px 24px;
+      background: var(--surface-muted);
       border-bottom: 1px solid var(--border);
       flex-wrap: wrap;
     }
@@ -677,112 +660,266 @@
     .create-form label {
       display: block;
       font-size: 12px;
-      font-weight: 500;
+      font-weight: 600;
       color: var(--text-muted);
       margin-bottom: 6px;
-      letter-spacing: 0.02em;
     }
 
     .create-form input {
       width: 100%;
-      padding: 10px 14px;
+      padding: 9px 14px;
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
       font-size: 14px;
       outline: none;
       font-family: inherit;
-      transition: var(--transition);
-      background: var(--bg-card);
-      color: var(--text);
+      transition: border-color 0.15s ease-out, box-shadow 0.15s ease-out;
+      background: var(--surface);
+      color: var(--text-heading);
     }
 
     .create-form input:focus {
       border-color: var(--primary);
-      box-shadow: 0 0 0 3px var(--primary-ring);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
     }
 
     .create-form input::placeholder {
-      color: var(--text-muted);
+      color: #CBD5E1;
     }
 
     /* ============================================================
-       Pagination
+       Pagination — Modern SaaS
        ============================================================ */
     .pagination {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 14px 24px;
+      padding: 16px 24px;
       border-top: 1px solid var(--border);
       gap: 12px;
       flex-wrap: wrap;
     }
 
-    .pagination-info {
+    .pagination-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
       font-size: 13px;
       color: var(--text-muted);
       font-weight: 500;
     }
 
-    .pagination-info strong {
-      color: var(--text);
+    .pagination-left strong {
+      color: var(--text-heading);
       font-weight: 600;
     }
 
-    .pagination-btns {
-      display: flex;
+    .page-size-select {
+      display: inline-flex;
+      align-items: center;
       gap: 6px;
+      font-size: 13px;
+      color: var(--text-muted);
     }
 
-    .pagination-btns button {
-      padding: 8px 16px;
+    .page-size-select select {
+      appearance: none;
+      -webkit-appearance: none;
+      background: var(--surface);
       border: 1px solid var(--border);
-      background: var(--bg-card);
-      border-radius: var(--radius-sm);
+      border-radius: 8px;
+      padding: 6px 28px 6px 10px;
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--text-body);
+      cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      transition: border-color 0.15s;
+    }
+
+    .page-size-select select:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .pagination-right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .pg-btn {
+      min-width: 34px;
+      height: 34px;
+      border: 1px solid transparent;
+      background: transparent;
+      border-radius: 8px;
       font-size: 13px;
       font-weight: 500;
       cursor: pointer;
-      transition: var(--transition);
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
       font-family: inherit;
-      color: var(--text-secondary);
+      color: var(--text-body);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 6px;
     }
 
-    .pagination-btns button:hover:not(:disabled) {
-      background: var(--bg-subtle);
-      border-color: var(--text-muted);
-      color: var(--text);
+    .pg-btn:hover:not(:disabled):not(.active) {
+      background: var(--surface-muted);
+      border-color: var(--border);
     }
 
-    .pagination-btns button:disabled {
-      opacity: 0.4;
+    .pg-btn:disabled {
+      opacity: 0.35;
       cursor: not-allowed;
     }
 
-    .pagination-btns button.active {
+    .pg-btn.active {
       background: var(--primary);
       color: #fff;
       border-color: var(--primary);
     }
 
+    .pg-ellipsis {
+      min-width: 34px;
+      height: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      color: var(--text-faint);
+      letter-spacing: 2px;
+    }
+
+    .page-jump {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-left: 8px;
+    }
+
+    .page-jump input {
+      width: 52px;
+      height: 34px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      text-align: center;
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--text-body);
+      background: var(--surface);
+      transition: border-color 0.15s;
+    }
+
+    .page-jump input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .page-jump button {
+      height: 34px;
+      padding: 0 12px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--primary);
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .page-jump button:hover {
+      background: var(--surface-muted);
+      border-color: var(--primary);
+    }
+
     /* ============================================================
-       Empty State
+       Dashboard iframe
+       ============================================================ */
+    .dashboard-frame {
+      position: relative;
+      width: 100%;
+      height: calc(100vh - 120px);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: var(--surface-muted);
+    }
+
+    .dashboard-loading {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--surface-muted);
+      z-index: 10;
+    }
+
+    .dashboard-loading-inner {
+      text-align: center;
+    }
+
+    .dashboard-loading-inner svg {
+      animation: spin 1s linear infinite;
+    }
+
+    .dashboard-loading-inner p {
+      margin-top: 16px;
+      font-size: 14px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .dashboard-iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: var(--surface-muted);
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* ============================================================
+       Empty State — Modern SaaS
        ============================================================ */
     .empty {
       padding: 60px 24px;
       text-align: center;
-      color: var(--text-muted);
+      color: var(--text-faint);
+    }
+
+    .empty-icon {
+      margin-bottom: 12px;
+      opacity: 0.4;
+    }
+
+    .empty p {
+      font-size: 14px;
+      font-weight: 500;
     }
 
     .empty-icon {
       width: 56px;
       height: 56px;
       margin: 0 auto 18px;
-      border-radius: var(--radius);
-      background: var(--bg);
+      border-radius: 16px;
+      background: #F5F5F7;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--text-muted);
+      color: #86868B;
     }
 
     .empty-icon svg { width: 28px; height: 28px; }
@@ -795,12 +932,14 @@
     }
 
     /* ============================================================
-       Modal — Glassmorphism
+       Modal — Bento Grid
        ============================================================ */
     .modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(15,23,42,0.5);
+      background: rgba(0,0,0,0.3);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
       display: flex;
       justify-content: center;
       align-items: center;
@@ -816,7 +955,7 @@
     @keyframes modalSlideUp {
       from {
         opacity: 0;
-        transform: translateY(20px) scale(0.96);
+        transform: translateY(16px) scale(0.97);
       }
       to {
         opacity: 1;
@@ -825,13 +964,13 @@
     }
 
     .modal {
-      background: var(--bg-card);
-      border-radius: 20px;
+      background: #FFFFFF;
+      border-radius: 16px;
       padding: 32px;
       width: 520px;
       max-width: 90vw;
-      box-shadow: var(--shadow-md);
-      animation: modalSlideUp 0.25s ease;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.12);
+      animation: modalSlideUp 0.25s ease-out;
       position: relative;
       overflow: hidden;
     }
@@ -847,11 +986,11 @@
       width: 48px;
       height: 48px;
       border-radius: 50%;
-      background: var(--success-light);
+      background: rgba(22,163,74,0.08);
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--success);
+      color: #16A34A;
       flex-shrink: 0;
     }
 
@@ -860,28 +999,28 @@
     .modal-header-text h3 {
       font-size: 18px;
       font-weight: 700;
-      color: var(--text);
+      color: #1D1D1F;
     }
 
     .modal-header-text p {
       font-size: 13px;
-      color: var(--text-muted);
+      color: #86868B;
       margin-top: 2px;
     }
 
-    .modal p { font-size: 14px; color: var(--text-secondary); margin-bottom: 8px; line-height: 1.5; }
+    .modal p { font-size: 14px; color: #1D1D1F; margin-bottom: 8px; line-height: 1.5; }
 
     .token-display {
-      background: var(--bg);
+      background: #F5F5F7;
       padding: 16px 18px;
-      border-radius: var(--radius);
+      border-radius: 12px;
       word-break: break-all;
       font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
       font-size: 13px;
       margin: 16px 0;
-      border: 1px solid var(--border);
-      border-left: 3px solid var(--primary);
-      color: var(--text);
+      border: none;
+      border-left: 3px solid #2563EB;
+      color: #1D1D1F;
       line-height: 1.6;
       user-select: all;
     }
@@ -890,9 +1029,9 @@
       display: flex;
       align-items: flex-start;
       gap: 12px;
-      background: var(--warning-light);
-      border: 1px solid #FDE68A;
-      border-radius: var(--radius);
+      background: rgba(217,119,6,0.06);
+      border: none;
+      border-radius: 12px;
       padding: 14px 18px;
       color: #92400E;
       font-size: 13px;
@@ -905,7 +1044,7 @@
       height: 18px;
       flex-shrink: 0;
       margin-top: 1px;
-      color: var(--warning);
+      color: #D97706;
     }
 
     .modal-actions {
@@ -938,21 +1077,26 @@
 
     .main::-webkit-scrollbar-thumb,
     .sidebar-nav::-webkit-scrollbar-thumb {
-      background: var(--border);
+      background: #D1D1D6;
       border-radius: 3px;
     }
 
     .main::-webkit-scrollbar-thumb:hover,
     .sidebar-nav::-webkit-scrollbar-thumb:hover {
-      background: var(--text-muted);
+      background: #86868B;
     }
 
     /* ============================================================
        Responsive — Tablet & Mobile
        ============================================================ */
     @media (max-width: 1024px) {
-      .stats {
-        grid-template-columns: repeat(2, 1fr);
+      .card-header {
+        flex-wrap: wrap;
+      }
+
+      .card-header-stats {
+        width: 100%;
+        justify-content: flex-start;
       }
     }
 
@@ -962,7 +1106,11 @@
       }
 
       .sidebar {
-        transform: translateX(-100%);
+        transform: translateX(calc(-100% - 24px));
+        top: 0;
+        left: 0;
+        bottom: 0;
+        border-radius: 0;
       }
 
       .main {
@@ -971,8 +1119,14 @@
         padding-top: 64px;
       }
 
-      .stats {
-        grid-template-columns: 1fr;
+      .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .card-header-stats {
+        width: 100%;
+        justify-content: flex-start;
       }
 
       .create-form {
@@ -985,13 +1139,13 @@
     }
 
     @media (max-width: 600px) {
-      .main-header-icon {
+      .card-header-icon {
         display: none;
       }
 
       .modal {
         padding: 24px 20px;
-        border-radius: 16px;
+        border-radius: 12px;
       }
 
       .modal-actions {
@@ -1004,8 +1158,18 @@
         text-align: center;
       }
 
-      .pagination-btns {
+      .pagination-left {
         justify-content: center;
+      }
+
+      .pagination-right {
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .page-jump {
+        margin-left: 0;
+        margin-top: 4px;
       }
     }
 
@@ -1015,12 +1179,8 @@
         padding-top: 60px;
       }
 
-      .stat-card {
+      .card-header {
         padding: 16px 18px;
-      }
-
-      .table-header {
-        padding: 14px 16px;
       }
 
       th, td {
@@ -1047,8 +1207,8 @@
     .spinner {
       width: 36px;
       height: 36px;
-      border: 3px solid var(--border);
-      border-top-color: var(--primary);
+      border: 3px solid #F0F0F0;
+      border-top-color: #2563EB;
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
       margin: 0 auto;
@@ -1109,55 +1269,48 @@
       <main class="main">
         <!-- Files Tab -->
         <template v-if="tab === 'files'">
-          <div class="main-header">
-            <div class="main-header-left">
-              <div class="main-header-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
-              </div>
-              <div>
-                <div class="main-title">文件管理</div>
-                <div class="main-subtitle">管理所有上传的文件</div>
-              </div>
-            </div>
-          </div>
-          <div class="stats">
-            <div class="stat-card">
-              <div class="stat-card-icon blue">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
-              </div>
-              <div class="stat-card-body">
-                <div class="stat-card-value blue">{{ files.total }}</div>
-                <div class="stat-card-label">总文件数</div>
-              </div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-card-icon green">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-              </div>
-              <div class="stat-card-body">
-                <div class="stat-card-value green">{{ files.page }} / {{ files.totalPages || 1 }}</div>
-                <div class="stat-card-label">当前页</div>
-              </div>
-            </div>
-          </div>
           <div class="table-card">
-            <div class="table-header">
-              <div class="table-title">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
-                文件列表
+            <!-- 融合标题 + 统计 -->
+            <div class="card-header">
+              <div class="card-header-left">
+                <div class="card-header-icon blue">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+                </div>
+                <div>
+                  <div class="card-header-title">文件管理</div>
+                  <div class="card-header-subtitle">管理所有上传的文件</div>
+                </div>
+              </div>
+              <div class="card-header-stats">
+                <div class="mini-stat">
+                  <span class="mini-stat-value blue">{{ files.total }}</span>
+                  <span class="mini-stat-label">总文件</span>
+                </div>
+                <div class="mini-stat-divider"></div>
+                <div class="mini-stat">
+                  <span class="mini-stat-value">{{ files.page }} / {{ files.totalPages || 1 }}</span>
+                  <span class="mini-stat-label">当前页</span>
+                </div>
               </div>
             </div>
+            <div class="card-divider"></div>
             <div class="table-wrapper" v-if="files.items.length">
               <table>
-                <thead><tr><th>ID</th><th>文件名</th><th>大小</th><th>类型</th><th>来源</th><th>上传时间</th><th>操作</th></tr></thead>
+                <thead><tr><th>ID</th><th>文件名</th><th>大小</th><th>类型</th><th>Hash</th><th>来源</th><th>上传时间</th><th>操作</th></tr></thead>
                 <tbody>
                   <tr v-for="f in files.items" :key="f.id">
                     <td class="td-mono">{{ f.id }}</td>
-                    <td style="font-weight:600;color:var(--text)">{{ f.originalName }}</td>
+                     <td>
+                       <a :href="f.fullUrl" target="_blank" rel="noopener" class="td-link">
+                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                         {{ f.originalName }}
+                       </a>
+                     </td>
                     <td>{{ formatSize(f.size) }}</td>
-                    <td><span style="font-size:12px;color:var(--text-muted)">{{ f.mimeType }}</span></td>
+                    <td><span class="td-mono">{{ f.mimeType }}</span></td>
+                    <td><span class="td-hash" @click="copyUrl(f.hash)" :title="f.hash">{{ f.hash ? f.hash.slice(0, 8) + '...' : '-' }}</span></td>
                     <td>{{ f.tokenName || '-' }}</td>
-                    <td style="font-size:13px;color:var(--text-muted)">{{ formatDate(f.uploadedAt) }}</td>
+                    <td class="td-muted">{{ formatDate(f.uploadedAt) }}</td>
                     <td>
                       <div class="td-actions">
                         <button class="btn btn-ghost" @click="copyUrl(f.fullUrl)">
@@ -1181,10 +1334,28 @@
               <p>暂无文件</p>
             </div>
             <div class="pagination">
-              <div class="pagination-info">共 <strong>{{ files.total }}</strong> 条记录</div>
-              <div class="pagination-btns">
-                <button @click="loadFiles(files.page - 1)" :disabled="files.page <= 1">上一页</button>
-                <button @click="loadFiles(files.page + 1)" :disabled="files.page >= files.totalPages">下一页</button>
+              <div class="pagination-left">
+                <span>共 <strong>{{ files.total }}</strong> 条</span>
+                <label class="page-size-select">
+                  <select :value="filesPageSize" @change="onFilesPageSizeChange($event)">
+                    <option value="10">10 条/页</option>
+                    <option value="20">20 条/页</option>
+                    <option value="50">50 条/页</option>
+                    <option value="100">100 条/页</option>
+                  </select>
+                </label>
+              </div>
+              <div class="pagination-right">
+                <button class="pg-btn" @click="loadFiles(files.page - 1)" :disabled="files.page <= 1">‹</button>
+                <template v-for="p in filesPageNumbers" :key="p">
+                  <span v-if="p === '...'" class="pg-ellipsis">…</span>
+                  <button v-else class="pg-btn" :class="{ active: p === files.page }" @click="loadFiles(p)">{{ p }}</button>
+                </template>
+                <button class="pg-btn" @click="loadFiles(files.page + 1)" :disabled="files.page >= files.totalPages">›</button>
+                <span class="page-jump">
+                  跳至 <input type="number" min="1" :max="files.totalPages" v-model.number="filesJumpPage" @keyup.enter="jumpFilesPage" /> 页
+                  <button @click="jumpFilesPage">确定</button>
+                </span>
               </div>
             </div>
           </div>
@@ -1192,29 +1363,26 @@
 
         <!-- Tokens Tab -->
         <template v-if="tab === 'tokens'">
-          <div class="main-header">
-            <div class="main-header-left">
-              <div class="main-header-icon" style="background:var(--accent-light);color:var(--accent);">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
-              </div>
-              <div>
-                <div class="main-title">Token 管理</div>
-                <div class="main-subtitle">管理 Upload Token 的创建、启用和轮换</div>
-              </div>
-            </div>
-          </div>
-          <div class="stats">
-            <div class="stat-card">
-              <div class="stat-card-icon orange">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
-              </div>
-              <div class="stat-card-body">
-                <div class="stat-card-value blue">{{ tokens.total }}</div>
-                <div class="stat-card-label">总 Token</div>
-              </div>
-            </div>
-          </div>
           <div class="table-card">
+            <!-- 融合标题 + 统计 -->
+            <div class="card-header">
+              <div class="card-header-left">
+                <div class="card-header-icon orange">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+                </div>
+                <div>
+                  <div class="card-header-title">Token 管理</div>
+                  <div class="card-header-subtitle">管理 Upload Token 的创建、启用和轮换</div>
+                </div>
+              </div>
+              <div class="card-header-stats">
+                <div class="mini-stat">
+                  <span class="mini-stat-value blue">{{ tokens.total }}</span>
+                  <span class="mini-stat-label">总 Token</span>
+                </div>
+              </div>
+            </div>
+            <div class="card-divider"></div>
             <div class="create-form">
               <div class="field"><label>名称 *</label><input v-model="newToken.name" placeholder="签发对象名称" /></div>
               <div class="field"><label>描述</label><input v-model="newToken.description" placeholder="可选描述" /></div>
@@ -1230,12 +1398,12 @@
                 <tbody>
                   <tr v-for="t in tokens.items" :key="t.id">
                     <td class="td-mono">{{ t.id }}</td>
-                    <td style="font-weight:600;color:var(--text)">{{ t.name }}</td>
+                    <td class="td-name">{{ t.name }}</td>
                     <td class="td-mono">{{ t.tokenPrefix }}***</td>
-                    <td style="color:var(--text-muted)">{{ t.description || '-' }}</td>
+                    <td class="td-muted">{{ t.description || '-' }}</td>
                     <td><span class="badge" :class="t.enabled ? 'badge-green' : 'badge-red'"><span class="badge-dot"></span>{{ t.enabled ? '启用' : '禁用' }}</span></td>
-                    <td style="font-size:13px;color:var(--text-muted)">{{ t.lastUsedAt ? formatDate(t.lastUsedAt) : '-' }}</td>
-                    <td style="font-size:13px;color:var(--text-muted)">{{ formatDate(t.createdAt) }}</td>
+                    <td class="td-muted">{{ t.lastUsedAt ? formatDate(t.lastUsedAt) : '-' }}</td>
+                    <td class="td-muted">{{ formatDate(t.createdAt) }}</td>
                     <td>
                       <div class="td-actions">
                         <button v-if="t.enabled" class="btn btn-warning" @click="toggleToken(t.id, false)">禁用</button>
@@ -1255,10 +1423,28 @@
               <p>暂无 Token，创建一个开始使用</p>
             </div>
             <div class="pagination">
-              <div class="pagination-info">共 <strong>{{ tokens.total }}</strong> 条记录</div>
-              <div class="pagination-btns">
-                <button @click="loadTokens(tokens.page - 1)" :disabled="tokens.page <= 1">上一页</button>
-                <button @click="loadTokens(tokens.page + 1)" :disabled="tokens.page >= tokens.totalPages">下一页</button>
+              <div class="pagination-left">
+                <span>共 <strong>{{ tokens.total }}</strong> 条</span>
+                <label class="page-size-select">
+                  <select :value="tokensPageSize" @change="onTokensPageSizeChange($event)">
+                    <option value="10">10 条/页</option>
+                    <option value="20">20 条/页</option>
+                    <option value="50">50 条/页</option>
+                    <option value="100">100 条/页</option>
+                  </select>
+                </label>
+              </div>
+              <div class="pagination-right">
+                <button class="pg-btn" @click="loadTokens(tokens.page - 1)" :disabled="tokens.page <= 1">‹</button>
+                <template v-for="p in tokensPageNumbers" :key="'t'+p">
+                  <span v-if="p === '...'" class="pg-ellipsis">…</span>
+                  <button v-else class="pg-btn" :class="{ active: p === tokens.page }" @click="loadTokens(p)">{{ p }}</button>
+                </template>
+                <button class="pg-btn" @click="loadTokens(tokens.page + 1)" :disabled="tokens.page >= tokens.totalPages">›</button>
+                <span class="page-jump">
+                  跳至 <input type="number" min="1" :max="tokens.totalPages" v-model.number="tokensJumpPage" @keyup.enter="jumpTokensPage" /> 页
+                  <button @click="jumpTokensPage">确定</button>
+                </span>
               </div>
             </div>
           </div>
@@ -1266,14 +1452,14 @@
 
         <!-- Dashboard Tab -->
         <template v-if="tab === 'dashboard'">
-          <div style="position:relative;width:100%;height:calc(100vh - 120px);border-radius:var(--radius);overflow:hidden;">
-            <div v-if="dashboardLoading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);z-index:10;">
-              <div style="text-align:center;">
-                <div class="spinner"></div>
-                <div style="margin-top:16px;font-size:14px;color:var(--text-muted);">加载运维中心...</div>
+          <div class="dashboard-frame">
+            <div v-if="dashboardLoading" class="dashboard-loading">
+              <div class="dashboard-loading-inner">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4m0 12v4m-7.07-3.93l2.83-2.83m8.49-8.49l2.83-2.83M2 12h4m12 0h4M4.93 4.93l2.83 2.83m8.49 8.49l2.83 2.83"/></svg>
+                <p>加载运维中心...</p>
               </div>
             </div>
-            <iframe src="/admin-dashboard.html" title="运维中心面板" @load="dashboardLoading = false" style="width:100%;height:100%;border:none;background:var(--bg);"></iframe>
+            <iframe src="/admin-dashboard.html" title="运维中心面板" @load="dashboardLoading = false" class="dashboard-iframe"></iframe>
           </div>
         </template>
       </main>
@@ -1308,7 +1494,7 @@
   </div>
 
   <script>
-    const { createApp, ref, reactive, onMounted, watch } = Vue;
+    const { createApp, ref, reactive, computed, onMounted, watch } = Vue;
     const http = axios.create();
     http.interceptors.request.use((config) => {
       const token = localStorage.getItem('admin_token');
@@ -1328,37 +1514,77 @@
         const tokens = reactive({ items: [], total: 0, page: 1, totalPages: 0 });
         const newToken = reactive({ name: '', description: '', expiresAt: '' });
         const tokenModal = ref(null);
+        const filesPageSize = ref(20);
+        const tokensPageSize = ref(20);
+        const filesJumpPage = ref(null);
+        const tokensJumpPage = ref(null);
+
+        /* 生成页码数组（含省略号） */
+        const calcPageNumbers = (current, total) => {
+          if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+          const pages = [];
+          pages.push(1);
+          if (current > 3) pages.push('...');
+          const start = Math.max(2, current - 1);
+          const end = Math.min(total - 1, current + 1);
+          for (let i = start; i <= end; i++) pages.push(i);
+          if (current < total - 2) pages.push('...');
+          pages.push(total);
+          return pages;
+        };
+
+        const filesPageNumbers = computed(() => calcPageNumbers(files.page, files.totalPages || 1));
+        const tokensPageNumbers = computed(() => calcPageNumbers(tokens.page, tokens.totalPages || 1));
 
         const formatSize = (b) => { if (!b) return '0 B'; const u = ['B','KB','MB','GB']; let i = 0, s = Number(b); while (s >= 1024 && i < u.length - 1) { s /= 1024; i++; } return s.toFixed(2) + ' ' + u[i]; };
         const formatDate = (d) => d ? new Date(d).toLocaleString('zh-CN') : '-';
 
         const loadFiles = async (page = 1) => {
-          try { const res = await http.get('/admin/files', { params: { page, limit: 20 } }); Object.assign(files, res.data.data || res.data); } catch (e) { console.error(e); alert('加载文件列表失败'); }
+          try { const res = await http.get('/admin/files', { params: { page, limit: filesPageSize.value } }); Object.assign(files, res.data.data || res.data); } catch (e) { console.error(e); Toast.error('加载文件列表失败'); }
         };
         const loadTokens = async (page = 1) => {
-          try { const res = await http.get('/admin/tokens', { params: { page, limit: 20 } }); Object.assign(tokens, res.data.data || res.data); } catch (e) { console.error(e); alert('加载令牌列表失败'); }
+          try { const res = await http.get('/admin/tokens', { params: { page, limit: tokensPageSize.value } }); Object.assign(tokens, res.data.data || res.data); } catch (e) { console.error(e); Toast.error('加载令牌列表失败'); }
         };
-        const deleteFile = async (id) => {
-          if (!confirm('确认删除此文件？将同时删除物理文件。')) return;
-          try { await http.delete(`/admin/files/${id}`); loadFiles(files.page); } catch (e) { alert(e.response?.data?.message || '删除失败'); }
+        const onFilesPageSizeChange = (e) => {
+          filesPageSize.value = Number(e.target.value);
+          loadFiles(1);
+        };
+        const onTokensPageSizeChange = (e) => {
+          tokensPageSize.value = Number(e.target.value);
+          loadTokens(1);
+        };
+        const jumpFilesPage = () => {
+          const p = filesJumpPage.value;
+          if (p && p >= 1 && p <= (files.totalPages || 1)) { loadFiles(p); filesJumpPage.value = null; }
+        };
+        const jumpTokensPage = () => {
+          const p = tokensJumpPage.value;
+          if (p && p >= 1 && p <= (tokens.totalPages || 1)) { loadTokens(p); tokensJumpPage.value = null; }
+        };
+        const deleteFile = (id) => {
+          Toast.confirm('确认删除此文件？将同时删除物理文件。', async () => {
+            try { await http.delete(`/admin/files/${id}`); loadFiles(files.page); Toast.success('文件已删除'); } catch (e) { Toast.error(e.response?.data?.message || '删除失败'); }
+          });
         };
         const createToken = async () => {
-          if (!newToken.name) { alert('请输入名称'); return; }
-          try { const res = await http.post('/admin/tokens', { ...newToken }); tokenModal.value = res.data.data || res.data; newToken.name = ''; newToken.description = ''; newToken.expiresAt = ''; loadTokens(1); } catch (e) { alert(e.response?.data?.message || '创建失败'); }
+          if (!newToken.name) { Toast.warning('请输入名称'); return; }
+          try { const res = await http.post('/admin/tokens', { ...newToken }); tokenModal.value = res.data.data || res.data; newToken.name = ''; newToken.description = ''; newToken.expiresAt = ''; loadTokens(1); } catch (e) { Toast.error(e.response?.data?.message || '创建失败'); }
         };
         const toggleToken = async (id, enabled) => {
-          try { await http.patch(`/admin/tokens/${id}/${enabled ? 'enable' : 'disable'}`); loadTokens(tokens.page); } catch (e) { alert(e.response?.data?.message || '操作失败'); }
+          try { await http.patch(`/admin/tokens/${id}/${enabled ? 'enable' : 'disable'}`); loadTokens(tokens.page); Toast.success(enabled ? 'Token 已启用' : 'Token 已禁用'); } catch (e) { Toast.error(e.response?.data?.message || '操作失败'); }
         };
-        const rotateToken = async (id) => {
-          if (!confirm('确认轮换此 Token？旧 Token 将立即失效。')) return;
-          try { const res = await http.patch(`/admin/tokens/${id}/rotate`); tokenModal.value = res.data.data || res.data; loadTokens(tokens.page); } catch (e) { alert(e.response?.data?.message || '轮换失败'); }
+        const rotateToken = (id) => {
+          Toast.confirm('确认轮换此 Token？旧 Token 将立即失效。', async () => {
+            try { const res = await http.patch(`/admin/tokens/${id}/rotate`); tokenModal.value = res.data.data || res.data; loadTokens(tokens.page); Toast.success('Token 已轮换'); } catch (e) { Toast.error(e.response?.data?.message || '轮换失败'); }
+          });
         };
-        const deleteToken = async (id) => {
-          if (!confirm('确认删除此 Token？')) return;
-          try { await http.delete(`/admin/tokens/${id}`); loadTokens(tokens.page); } catch (e) { alert(e.response?.data?.message || '删除失败'); }
+        const deleteToken = (id) => {
+          Toast.confirm('确认删除此 Token？', async () => {
+            try { await http.delete(`/admin/tokens/${id}`); loadTokens(tokens.page); Toast.success('Token 已删除'); } catch (e) { Toast.error(e.response?.data?.message || '删除失败'); }
+          });
         };
-        const copyUrl = (url) => { navigator.clipboard.writeText(url).then(() => alert('已复制')).catch(() => alert('复制失败，请手动复制')); };
-        const copyToken = () => { navigator.clipboard.writeText(tokenModal.value.token).then(() => alert('已复制')).catch(() => alert('复制失败，请手动复制')); };
+        const copyUrl = (url) => { navigator.clipboard.writeText(url).then(() => Toast.success('已复制')).catch(() => Toast.error('复制失败，请手动复制')); };
+        const copyToken = () => { navigator.clipboard.writeText(tokenModal.value.token).then(() => Toast.success('已复制')).catch(() => Toast.error('复制失败，请手动复制')); };
         const logout = () => { localStorage.removeItem('admin_token'); window.location.href = '/login.html'; };
 
         watch(tab, (val) => {
@@ -1371,7 +1597,7 @@
           loadFiles(1); loadTokens(1);
         });
 
-        return { tab, dashboardLoading, files, tokens, newToken, tokenModal, loadFiles, loadTokens, deleteFile, createToken, toggleToken, rotateToken, deleteToken, copyUrl, copyToken, logout, formatSize, formatDate };
+        return { tab, dashboardLoading, files, tokens, newToken, tokenModal, loadFiles, loadTokens, deleteFile, createToken, toggleToken, rotateToken, deleteToken, copyUrl, copyToken, logout, formatSize, formatDate, filesPageSize, tokensPageSize, filesJumpPage, tokensJumpPage, filesPageNumbers, tokensPageNumbers, onFilesPageSizeChange, onTokensPageSizeChange, jumpFilesPage, jumpTokensPage };
       },
     }).mount('#app');
   </script>

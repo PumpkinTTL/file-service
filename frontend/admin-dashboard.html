@@ -7,31 +7,27 @@
   <script src="/lib/vue.global.prod.js"></script>
   <script src="/lib/axios.min.js"></script>
   <script src="/lib/echarts.min.js"></script>
+  <script src="/lib/toast.js"></script>
   <style>
     :root {
       --primary: #2563EB;
       --primary-hover: #1D4ED8;
-      --primary-light: #EFF6FF;
       --success: #16A34A;
-      --success-light: #F0FDF4;
       --danger: #DC2626;
-      --danger-light: #FEF2F2;
       --warning: #D97706;
-      --warning-light: #FFFBEB;
-      --bg: #F8FAFC;
+      --bg: #F5F5F7;
       --bg-card: #FFFFFF;
-      --text: #1E293B;
-      --text-secondary: #475569;
-      --text-muted: #94A3B8;
-      --border: #E2E8F0;
-      --primary-ring: rgba(37,99,235,0.15);
-      --shadow-xs: 0 1px 2px rgba(0,0,0,0.03);
-      --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03);
+      --text: #1D1D1F;
+      --text-secondary: #86868B;
+      --text-muted: #86868B;
+      --border: #F0F0F0;
+      --shadow-xs: 0 1px 3px rgba(0,0,0,0.04);
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
       --shadow-md: 0 4px 16px rgba(0,0,0,0.06);
-      --radius: 12px;
-      --radius-sm: 8px;
-      --radius-xs: 6px;
-      --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      --radius: 16px;
+      --radius-sm: 12px;
+      --radius-xs: 10px;
+      --transition: all 0.2s ease-out;
     }
 
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -53,13 +49,13 @@
 
     .tabs {
       display: flex;
-      gap: 8px;
+      gap: 4px;
       margin-bottom: 24px;
       border-bottom: 1px solid var(--border);
     }
 
     .tab {
-      padding: 12px 24px;
+      padding: 10px 20px;
       background: none;
       border: none;
       font-family: inherit;
@@ -68,18 +64,18 @@
       color: var(--text-secondary);
       cursor: pointer;
       transition: var(--transition);
-      border-bottom: 2px solid transparent;
-      margin-bottom: -1px;
+      border-radius: 10px 10px 0 0;
     }
 
     .tab:hover {
       color: var(--text);
-      background: #F1F5F9;
+      background: rgba(0,0,0,0.03);
     }
 
     .tab.active {
       color: var(--primary);
-      border-bottom-color: var(--primary);
+      background: #FFFFFF;
+      box-shadow: 0 -1px 0 #2563EB;
       font-weight: 600;
     }
 
@@ -100,7 +96,7 @@
       width: 44px;
       height: 44px;
       border-radius: var(--radius);
-      background: var(--primary-light);
+      background: rgba(37,99,235,0.08);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -113,14 +109,14 @@
     .main-title {
       font-size: 24px;
       font-weight: 700;
-      color: var(--text);
+      color: #1D1D1F;
       letter-spacing: -0.02em;
       line-height: 1.3;
     }
 
     .main-subtitle {
       font-size: 14px;
-      color: var(--text-muted);
+      color: #86868B;
       margin-top: 2px;
       font-weight: 400;
     }
@@ -134,31 +130,34 @@
 
     .stat-card {
       background: var(--bg-card);
-      border-radius: var(--radius-sm);
+      border-radius: 14px;
       padding: 18px 22px;
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow-xs);
-      transition: var(--transition);
+      border: none;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      transition: transform 0.25s ease-out, box-shadow 0.25s ease-out;
       display: flex;
       align-items: center;
       gap: 14px;
     }
 
-    .stat-card:hover { box-shadow: var(--shadow-md); }
+    .stat-card:hover {
+      transform: scale(1.02);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    }
 
     .stat-card-icon {
       width: 40px;
       height: 40px;
-      border-radius: var(--radius-sm);
+      border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
     }
 
-    .stat-card-icon.blue { background: var(--primary-light); color: var(--primary); }
-    .stat-card-icon.green { background: var(--success-light); color: var(--success); }
-    .stat-card-icon.orange { background: var(--warning-light); color: var(--warning); }
+    .stat-card-icon.blue { background: rgba(37,99,235,0.08); color: #2563EB; }
+    .stat-card-icon.green { background: rgba(22,163,74,0.08); color: #16A34A; }
+    .stat-card-icon.orange { background: rgba(249,115,22,0.08); color: #F97316; }
     .stat-card-icon svg { width: 22px; height: 22px; }
 
     .stat-card-body { flex: 1; }
@@ -166,7 +165,7 @@
     .stat-card-value {
       font-size: 24px;
       font-weight: 700;
-      color: var(--text);
+      color: #1D1D1F;
       line-height: 1.15;
       letter-spacing: -0.02em;
     }
@@ -177,7 +176,7 @@
     .stat-card-label {
       font-size: 12px;
       font-weight: 500;
-      color: var(--text-muted);
+      color: #86868B;
       text-transform: uppercase;
       letter-spacing: 0.04em;
       margin-top: 2px;
@@ -185,10 +184,10 @@
 
     .chart-card {
       background: var(--bg-card);
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
+      border-radius: 16px;
+      border: none;
       overflow: hidden;
-      box-shadow: var(--shadow-sm);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
       margin-bottom: 24px;
     }
 
@@ -197,14 +196,14 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid #F0F0F0;
       gap: 12px;
     }
 
     .chart-title {
       font-size: 15px;
       font-weight: 600;
-      color: var(--text);
+      color: #1D1D1F;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -216,10 +215,10 @@
 
     .table-card {
       background: var(--bg-card);
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
+      border-radius: 16px;
+      border: none;
       overflow: hidden;
-      box-shadow: var(--shadow-sm);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     }
 
     .table-header {
@@ -227,14 +226,14 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid #F0F0F0;
       gap: 12px;
     }
 
     .table-title {
       font-size: 15px;
       font-weight: 600;
-      color: var(--text);
+      color: #1D1D1F;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -246,25 +245,25 @@
 
     table { width: 100%; border-collapse: collapse; min-width: 640px; }
 
-    thead { background: var(--bg); }
+    thead { background: #FAFAFA; }
 
     th {
       padding: 12px 20px;
       text-align: left;
       font-size: 11px;
       font-weight: 600;
-      color: var(--text-muted);
+      color: #86868B;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid #F0F0F0;
       white-space: nowrap;
     }
 
     td {
       padding: 14px 20px;
       font-size: 14px;
-      border-bottom: 1px solid #F1F5F9;
-      color: var(--text-secondary);
+      border-bottom: 1px solid #F5F5F7;
+      color: #1D1D1F;
       vertical-align: middle;
     }
 
@@ -272,11 +271,11 @@
 
     tbody tr:last-child td { border-bottom: none; }
 
-    tbody tr:hover td { background: #FAFBFC; }
+    tbody tr:hover td { background: #F5F5F7; }
 
-    tbody tr:nth-child(even) td { background: #FAFBFC; }
+    tbody tr:nth-child(even) td { background: #FAFAFA; }
 
-    tbody tr:nth-child(even):hover td { background: #F1F5F9; }
+    tbody tr:nth-child(even):hover td { background: #F5F5F7; }
 
     .td-mono {
       font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
@@ -291,43 +290,48 @@
       align-items: center;
       gap: 6px;
       padding: 6px 14px;
-      border-radius: var(--radius-xs);
+      border-radius: 10px;
       font-size: 13px;
       font-weight: 500;
       cursor: pointer;
       border: none;
-      transition: var(--transition);
+      transition: background 0.2s ease-out, transform 0.15s ease-out, box-shadow 0.2s ease-out;
       font-family: inherit;
       line-height: 1.4;
       white-space: nowrap;
     }
+
+    .btn:active { transform: scale(0.97); }
 
     .btn svg { width: 14px; height: 14px; flex-shrink: 0; }
 
     .btn-primary {
       background: var(--primary);
       color: #fff;
+      box-shadow: 0 1px 3px rgba(37,99,235,0.2);
     }
 
-    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-primary:hover {
+      background: var(--primary-hover);
+      box-shadow: 0 2px 8px rgba(37,99,235,0.25);
+    }
 
     .btn-danger {
-      background: var(--danger-light);
+      background: rgba(220,38,38,0.08);
       color: var(--danger);
     }
 
-    .btn-danger:hover { background: #FEE2E2; }
+    .btn-danger:hover { background: rgba(220,38,38,0.14); }
 
     .btn-ghost {
-      background: var(--bg);
+      background: rgba(0,0,0,0.03);
       color: var(--text-secondary);
-      border: 1px solid var(--border);
+      border: none;
     }
 
     .btn-ghost:hover {
-      background: #F1F5F9;
+      background: rgba(0,0,0,0.06);
       color: var(--text);
-      border-color: var(--text-muted);
     }
 
     .badge {
@@ -342,18 +346,18 @@
     }
 
     .badge-green {
-      background: var(--success-light);
-      color: var(--success);
+      background: rgba(22,163,74,0.1);
+      color: #16A34A;
     }
 
     .badge-red {
-      background: var(--danger-light);
-      color: var(--danger);
+      background: rgba(220,38,38,0.1);
+      color: #DC2626;
     }
 
     .badge-yellow {
-      background: var(--warning-light);
-      color: var(--warning);
+      background: rgba(217,119,6,0.1);
+      color: #D97706;
     }
 
     .log-line {
@@ -365,7 +369,7 @@
     }
 
     .log-highlight {
-      background: #FEF3C7;
+      background: rgba(217,119,6,0.1);
       padding: 0 2px;
       border-radius: 2px;
     }
@@ -380,8 +384,8 @@
       width: 56px;
       height: 56px;
       margin: 0 auto 18px;
-      border-radius: var(--radius);
-      background: var(--bg);
+      border-radius: 14px;
+      background: #F5F5F7;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -395,8 +399,9 @@
     .modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(15, 23, 42, 0.4);
+      background: rgba(0,0,0,0.3);
       backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -405,9 +410,9 @@
 
     .modal {
       background: var(--bg-card);
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow-md);
+      border-radius: 20px;
+      border: none;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.12);
       width: 400px;
       max-width: 90vw;
       padding: 24px;
@@ -416,7 +421,7 @@
     .modal-title {
       font-size: 16px;
       font-weight: 600;
-      color: var(--text);
+      color: #1D1D1F;
       margin-bottom: 16px;
     }
 
@@ -432,8 +437,8 @@
       align-items: center;
       gap: 12px;
       padding: 14px 16px;
-      border: 2px solid var(--border);
-      border-radius: var(--radius-sm);
+      border: 2px solid #F0F0F0;
+      border-radius: 12px;
       cursor: pointer;
       transition: var(--transition);
       background: var(--bg-card);
@@ -441,8 +446,8 @@
 
     .modal-option:hover,
     .modal-option.selected {
-      border-color: var(--primary);
-      background: var(--primary-light);
+      border-color: #2563EB;
+      background: rgba(37,99,235,0.06);
     }
 
     .modal-option input[type="radio"] { display: none; }
@@ -450,21 +455,21 @@
     .modal-option-icon {
       width: 36px;
       height: 36px;
-      border-radius: var(--radius-xs);
+      border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
     }
 
-    .modal-option-icon.blue { background: var(--primary-light); color: var(--primary); }
-    .modal-option-icon.green { background: var(--success-light); color: var(--success); }
-    .modal-option-icon.orange { background: var(--warning-light); color: var(--warning); }
+    .modal-option-icon.blue { background: rgba(37,99,235,0.08); color: #2563EB; }
+    .modal-option-icon.green { background: rgba(22,163,74,0.08); color: #16A34A; }
+    .modal-option-icon.orange { background: rgba(249,115,22,0.08); color: #F97316; }
     .modal-option-icon svg { width: 18px; height: 18px; }
 
     .modal-option-body { flex: 1; }
-    .modal-option-label { font-size: 14px; font-weight: 600; color: var(--text); }
-    .modal-option-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .modal-option-label { font-size: 14px; font-weight: 600; color: #1D1D1F; }
+    .modal-option-desc { font-size: 12px; color: #86868B; margin-top: 2px; }
 
     .modal-actions {
       display: flex;
@@ -490,19 +495,19 @@
     .modal-field input {
       width: 100%;
       padding: 10px 14px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-xs);
+      border: 1px solid #E5E5E5;
+      border-radius: 10px;
       font-size: 14px;
       font-family: inherit;
-      background: var(--bg);
+      background: #FFFFFF;
       color: var(--text);
       transition: var(--transition);
       outline: none;
     }
 
     .modal-field input:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px var(--primary-ring);
+      border-color: #2563EB;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
     }
 
     .modal-field input::placeholder {
@@ -596,20 +601,20 @@
             <div v-for="disk in sys.disks" :key="disk.mount" style="margin-bottom: 16px;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                 <div style="display: flex; align-items: center; gap: 8px;">
-                  <span style="font-weight: 600; font-size: 14px; color: var(--text);">{{ disk.mount }}</span>
+                  <span style="font-weight: 600; font-size: 14px; color: #1D1D1F;">{{ disk.mount }}</span>
                   <span v-if="disk.isUploadDisk" class="badge badge-green">上传盘</span>
                 </div>
-                <span style="font-size: 13px; color: var(--text-secondary);">
+                <span style="font-size: 13px; color: #86868B;">
                   {{ formatSize(disk.used) }} / {{ formatSize(disk.total) }}
-                  <span :style="{ color: disk.usagePercent > 80 ? 'var(--danger)' : 'var(--text-muted)', fontWeight: 600 }">({{ disk.usagePercent }}%)</span>
+                  <span :style="{ color: disk.usagePercent > 80 ? '#DC2626' : '#86868B', fontWeight: 600 }">({{ disk.usagePercent }}%)</span>
                 </span>
               </div>
-              <div style="height: 8px; background: #F1F5F9; border-radius: 4px; overflow: hidden;">
+              <div style="height: 8px; background: #F0F0F0; border-radius: 4px; overflow: hidden;">
                 <div :style="{
                   width: disk.usagePercent + '%',
                   height: '100%',
                   borderRadius: '4px',
-                  background: disk.usagePercent > 80 ? 'var(--danger)' : disk.usagePercent > 60 ? 'var(--warning)' : 'var(--success)',
+                  background: disk.usagePercent > 80 ? '#DC2626' : disk.usagePercent > 60 ? '#D97706' : '#16A34A',
                   transition: 'width 0.6s ease'
                 }"></div>
               </div>
@@ -643,14 +648,14 @@
         <div class="table-card">
           <div class="table-header">
             <div style="display:flex;gap:12px;flex:1;align-items:center;">
-              <select v-model="logFilters.level" @change="loadLogs" style="padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--bg);color:var(--text);">
+              <select v-model="logFilters.level" @change="loadLogs" style="padding:8px 12px;border:1px solid #F0F0F0;border-radius:6px;font-size:13px;background:#F5F5F7;color:#1D1D1F;">
                 <option value="">全部级别</option>
                 <option value="error">Error</option>
                 <option value="warn">Warn</option>
                 <option value="info">Info</option>
                 <option value="debug">Debug</option>
               </select>
-              <input v-model="logFilters.keyword" @keyup.enter="loadLogs" placeholder="搜索关键字..." style="padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--bg);color:var(--text);width:240px;" />
+              <input v-model="logFilters.keyword" @keyup.enter="loadLogs" placeholder="搜索关键字..." style="padding:8px 12px;border:1px solid #F0F0F0;border-radius:6px;font-size:13px;background:#F5F5F7;color:#1D1D1F;width:240px;" />
               <button class="btn btn-primary" @click="loadLogs">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 搜索
@@ -730,8 +735,8 @@
                   <td class="td-mono">{{ b.id.substring(0, 8) }}...</td>
                   <td><span class="badge" :class="b.type === 'database' ? 'badge-green' : 'badge-yellow'">{{ b.type === 'database' ? '数据库' : '文件' }}</span></td>
                   <td>{{ formatSize(b.size) }}</td>
-                  <td style="font-size:13px;color:var(--text-secondary);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" :title="b.remark || ''">{{ b.remark || '-' }}</td>
-                  <td style="font-size:13px;color:var(--text-muted);">{{ formatDateTime(b.createdAt) }}</td>
+                  <td style="font-size:13px;color:#86868B;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" :title="b.remark || ''">{{ b.remark || '-' }}</td>
+                  <td style="font-size:13px;color:#86868B;">{{ formatDateTime(b.createdAt) }}</td>
                   <td>
                     <div class="td-actions">
                       <button class="btn btn-ghost" @click="downloadBackup(b.id)">
@@ -880,7 +885,7 @@
             await nextTick();
             initUploadChart();
           } catch (e) {
-            console.error('加载监控数据失败:', e); alert('加载监控数据失败，请刷新重试');
+            console.error('加载监控数据失败:', e); Toast.error('加载监控数据失败，请刷新重试');
           }
         };
 
@@ -915,7 +920,7 @@
             });
             logs.value = res.data.data || res.data || [];
           } catch (e) {
-            console.error('加载日志失败:', e); alert('加载日志失败，请刷新重试');
+            console.error('加载日志失败:', e); Toast.error('加载日志失败，请刷新重试');
           }
         };
 
@@ -963,10 +968,10 @@
             if (backupName.value.trim()) body.name = backupName.value.trim();
             if (backupRemark.value.trim()) body.remark = backupRemark.value.trim();
             await http.post('/admin/backup/trigger', body);
-            alert('备份任务已完成');
+            Toast.success('备份任务已完成');
             loadBackups();
           } catch (e) {
-            alert(e.response?.data?.message || '备份失败');
+            Toast.error(e.response?.data?.message || '备份失败');
           }
         };
 
@@ -980,18 +985,20 @@
             a.click();
             URL.revokeObjectURL(url);
           } catch (e) {
-            alert('下载失败');
+            Toast.error('下载失败');
           }
         };
 
-        const deleteBackup = async (id) => {
-          if (!confirm('确认删除此备份？删除后无法恢复。')) return;
-          try {
-            await http.delete(`/admin/backup/${id}`);
-            loadBackups();
-          } catch (e) {
-            alert(e.response?.data?.message || '删除失败');
-          }
+        const deleteBackup = (id) => {
+          Toast.confirm('确认删除此备份？删除后无法恢复。', async () => {
+            try {
+              await http.delete(`/admin/backup/${id}`);
+              loadBackups();
+              Toast.success('备份已删除');
+            } catch (e) {
+              Toast.error(e.response?.data?.message || '删除失败');
+            }
+          });
         };
 
         watch(tab, (newTab) => {
