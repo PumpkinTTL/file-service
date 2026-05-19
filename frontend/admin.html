@@ -305,106 +305,100 @@
     }
 
     /* ============================================================
-       Unified Card Header — Modern SaaS
+       Page Header — Section Title
        ============================================================ */
-    .card-header {
-      padding: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      flex-wrap: wrap;
+    .page-header {
+      margin-bottom: 20px;
     }
 
-    .card-header-left {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      min-width: 0;
-    }
-
-    .card-header-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: var(--radius-sm);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .card-header-icon.blue {
-      background: var(--primary-light);
-      color: var(--primary);
-    }
-
-    .card-header-icon.orange {
-      background: rgba(249,115,22,0.1);
-      color: var(--orange);
-    }
-
-    .card-header-icon svg {
-      width: 22px;
-      height: 22px;
-    }
-
-    .card-header-title {
-      font-size: 18px;
+    .page-title {
+      font-size: 22px;
       font-weight: 700;
       color: var(--text-heading);
       letter-spacing: -0.02em;
     }
 
-    .card-header-subtitle {
-      font-size: 13px;
+    .page-subtitle {
+      font-size: 14px;
       color: var(--text-muted);
-      margin-top: 2px;
-      line-height: 1.4;
+      margin-top: 4px;
     }
 
-    .card-header-stats {
-      display: flex;
-      align-items: center;
+    /* ============================================================
+       Stat Cards Grid
+       ============================================================ */
+    .stat-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 16px;
-      flex-shrink: 0;
+      margin-bottom: 20px;
     }
 
-    .mini-stat {
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 18px 20px;
+      box-shadow: var(--shadow-card);
       display: flex;
       flex-direction: column;
-      align-items: flex-end;
-      gap: 2px;
+      gap: 4px;
     }
 
-    .mini-stat-value {
-      font-size: 20px;
+    .stat-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .stat-card-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .stat-card-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .stat-card-icon.blue {
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+
+    .stat-card-icon.green {
+      background: rgba(22,163,74,0.1);
+      color: var(--green);
+    }
+
+    .stat-card-icon.orange {
+      background: rgba(249,115,22,0.1);
+      color: var(--orange);
+    }
+
+    .stat-card-icon svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .stat-card-value {
+      font-size: 24px;
       font-weight: 700;
       color: var(--text-heading);
       letter-spacing: -0.02em;
       line-height: 1.2;
     }
 
-    .mini-stat-value.blue { color: var(--primary); }
-
-    .mini-stat-label {
-      font-size: 11px;
-      font-weight: 500;
-      color: var(--text-faint);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-
-    .mini-stat-divider {
-      width: 1px;
-      height: 32px;
-      background: var(--border);
-    }
-
-    .card-divider {
-      height: 1px;
-      background: var(--border);
-      margin: 0 24px;
-    }
+    .stat-card-value.blue { color: var(--primary); }
+    .stat-card-value.green { color: var(--green); }
+    .stat-card-value.orange { color: var(--orange); }
 
     /* ============================================================
        Table Card — Modern SaaS
@@ -1269,43 +1263,57 @@
       <main class="main">
         <!-- Files Tab -->
         <template v-if="tab === 'files'">
-          <div class="table-card">
-            <!-- 融合标题 + 统计 -->
-            <div class="card-header">
-              <div class="card-header-left">
-                <div class="card-header-icon blue">
+          <!-- Page Header -->
+          <div class="page-header">
+            <div class="page-title">文件管理</div>
+            <div class="page-subtitle">管理所有上传的文件</div>
+          </div>
+
+          <!-- Stat Cards -->
+          <div class="stat-cards">
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-card-label">总文件</span>
+                <div class="stat-card-icon blue">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
                 </div>
-                <div>
-                  <div class="card-header-title">文件管理</div>
-                  <div class="card-header-subtitle">管理所有上传的文件</div>
-                </div>
               </div>
-              <div class="card-header-stats">
-                <div class="mini-stat">
-                  <span class="mini-stat-value blue">{{ files.total }}</span>
-                  <span class="mini-stat-label">总文件</span>
-                </div>
-                <div class="mini-stat-divider"></div>
-                <div class="mini-stat">
-                  <span class="mini-stat-value">{{ files.page }} / {{ files.totalPages || 1 }}</span>
-                  <span class="mini-stat-label">当前页</span>
-                </div>
-              </div>
+              <span class="stat-card-value blue">{{ files.total }}</span>
             </div>
-            <div class="card-divider"></div>
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-card-label">当前页</span>
+                <div class="stat-card-icon green">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 12 6 12 9 18 15 6 18 12 22 12"/></svg>
+                </div>
+              </div>
+              <span class="stat-card-value">{{ files.page }} / {{ files.totalPages || 1 }}</span>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-card-label">每页显示</span>
+                <div class="stat-card-icon orange">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                </div>
+              </div>
+              <span class="stat-card-value">{{ filesPageSize }} 条</span>
+            </div>
+          </div>
+
+          <!-- Table Card -->
+          <div class="table-card">
             <div class="table-wrapper" v-if="files.items.length">
               <table>
                 <thead><tr><th>ID</th><th>文件名</th><th>大小</th><th>类型</th><th>Hash</th><th>来源</th><th>上传时间</th><th>操作</th></tr></thead>
                 <tbody>
                   <tr v-for="f in files.items" :key="f.id">
                     <td class="td-mono">{{ f.id }}</td>
-                     <td>
-                       <a :href="f.fullUrl" target="_blank" rel="noopener" class="td-link">
-                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                         {{ f.originalName }}
-                       </a>
-                     </td>
+                    <td>
+                      <a :href="f.fullUrl" target="_blank" rel="noopener" class="td-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                        {{ f.originalName }}
+                      </a>
+                    </td>
                     <td>{{ formatSize(f.size) }}</td>
                     <td><span class="td-mono">{{ f.mimeType }}</span></td>
                     <td><span class="td-hash" @click="copyUrl(f.hash)" :title="f.hash">{{ f.hash ? f.hash.slice(0, 8) + '...' : '-' }}</span></td>
@@ -1329,11 +1337,11 @@
             </div>
             <div v-else class="empty">
               <div class="empty-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
               </div>
               <p>暂无文件</p>
             </div>
-            <div class="pagination">
+            <div class="pagination" v-if="files.items.length">
               <div class="pagination-left">
                 <span>共 <strong>{{ files.total }}</strong> 条</span>
                 <label class="page-size-select">
@@ -1363,26 +1371,45 @@
 
         <!-- Tokens Tab -->
         <template v-if="tab === 'tokens'">
-          <div class="table-card">
-            <!-- 融合标题 + 统计 -->
-            <div class="card-header">
-              <div class="card-header-left">
-                <div class="card-header-icon orange">
+          <!-- Page Header -->
+          <div class="page-header">
+            <div class="page-title">Token 管理</div>
+            <div class="page-subtitle">管理 Upload Token 的创建、启用和轮换</div>
+          </div>
+
+          <!-- Stat Cards -->
+          <div class="stat-cards">
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-card-label">总 Token</span>
+                <div class="stat-card-icon blue">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
                 </div>
-                <div>
-                  <div class="card-header-title">Token 管理</div>
-                  <div class="card-header-subtitle">管理 Upload Token 的创建、启用和轮换</div>
-                </div>
               </div>
-              <div class="card-header-stats">
-                <div class="mini-stat">
-                  <span class="mini-stat-value blue">{{ tokens.total }}</span>
-                  <span class="mini-stat-label">总 Token</span>
-                </div>
-              </div>
+              <span class="stat-card-value blue">{{ tokens.total }}</span>
             </div>
-            <div class="card-divider"></div>
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-card-label">当前页</span>
+                <div class="stat-card-icon green">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 12 6 12 9 18 15 6 18 12 22 12"/></svg>
+                </div>
+              </div>
+              <span class="stat-card-value">{{ tokens.page }} / {{ tokens.totalPages || 1 }}</span>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-card-label">每页显示</span>
+                <div class="stat-card-icon orange">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                </div>
+              </div>
+              <span class="stat-card-value">{{ tokensPageSize }} 条</span>
+            </div>
+          </div>
+
+          <!-- Create Token Form Card -->
+          <div class="table-card" style="margin-bottom: 20px;">
             <div class="create-form">
               <div class="field"><label>名称 *</label><input v-model="newToken.name" placeholder="签发对象名称" /></div>
               <div class="field"><label>描述</label><input v-model="newToken.description" placeholder="可选描述" /></div>
@@ -1392,6 +1419,10 @@
                 创建
               </button>
             </div>
+          </div>
+
+          <!-- Token Table Card -->
+          <div class="table-card">
             <div class="table-wrapper" v-if="tokens.items.length">
               <table>
                 <thead><tr><th>ID</th><th>名称</th><th>前缀</th><th>描述</th><th>状态</th><th>最后使用</th><th>创建时间</th><th>操作</th></tr></thead>
@@ -1418,11 +1449,11 @@
             </div>
             <div v-else class="empty">
               <div class="empty-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
               </div>
               <p>暂无 Token，创建一个开始使用</p>
             </div>
-            <div class="pagination">
+            <div class="pagination" v-if="tokens.items.length">
               <div class="pagination-left">
                 <span>共 <strong>{{ tokens.total }}</strong> 条</span>
                 <label class="page-size-select">
