@@ -223,17 +223,13 @@ export class UploadService {
 
       const fullPath = path.join(this.uploadBaseDir, datePath, fileName);
 
-      // DEBUG: 记录每个切片大小和 session 文件大小
-      const chunkSizes: number[] = [];
+      // 记录切片总大小，用于哈希失败时定位客户端/服务端大小差异
+      let totalChunkBytes = 0;
       for (let i = 0; i < totalChunks; i++) {
         const chunkPath = path.join(chunkDir, String(i));
         const stat = await fs.promises.stat(chunkPath);
-        chunkSizes.push(stat.size);
+        totalChunkBytes += stat.size;
       }
-      const totalChunkBytes = chunkSizes.reduce((a, b) => a + b, 0);
-      this.logsService.error(
-        `[DEBUG] 合并前: session.fileSize=${Number(session.fileSize)}, totalChunks=${totalChunks}, 切片总大小=${totalChunkBytes}, 各切片大小=${JSON.stringify(chunkSizes.slice(0, 5))}...${chunkSizes.length > 5 ? `(共${chunkSizes.length}个)` : ''}`,
-      );
 
       const writeStream = fs.createWriteStream(fullPath);
 
@@ -263,9 +259,6 @@ export class UploadService {
       // 验证合并后的 hash
       const actualHash = await computeFileHash(fullPath);
       const mergedStat = await fs.promises.stat(fullPath);
-      this.logsService.error(
-        `[DEBUG] 合并后: 合并文件大小=${mergedStat.size}, actualHash=${actualHash}, clientHash=${hash}`,
-      );
       if (hash && actualHash !== hash) {
         fs.unlinkSync(fullPath);
         const detail = `客户端: ${hash}, 服务端: ${actualHash}, 文件: ${filename}, 切片数: ${totalChunks}, sessionFileSize: ${Number(session.fileSize)}, mergedSize: ${mergedStat.size}, chunkTotal: ${totalChunkBytes}`;
