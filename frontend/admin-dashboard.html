@@ -9,25 +9,32 @@
   <script src="/lib/echarts.min.js"></script>
   <script src="/lib/toast.js"></script>
   <style>
+    /* ============================================================
+       CSS Custom Properties — Modern SaaS Tokens (sync with admin.html)
+       ============================================================ */
     :root {
+      --bg: #F5F5F7;
+      --text: #1D1D1F;
+      /* SaaS Design Tokens */
       --primary: #2563EB;
       --primary-hover: #1D4ED8;
-      --success: #16A34A;
-      --danger: #DC2626;
-      --warning: #D97706;
-      --bg: #F5F5F7;
-      --bg-card: #FFFFFF;
-      --text: #1D1D1F;
-      --text-secondary: #86868B;
-      --text-muted: #86868B;
-      --border: #F0F0F0;
-      --shadow-xs: 0 1px 3px rgba(0,0,0,0.04);
-      --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
-      --shadow-md: 0 4px 16px rgba(0,0,0,0.06);
-      --radius: 16px;
-      --radius-sm: 12px;
-      --radius-xs: 10px;
-      --transition: all 0.2s ease-out;
+      --primary-light: #EEF4FF;
+      --orange: #F97316;
+      --red: #DC2626;
+      --green: #16A34A;
+      --yellow: #D97706;
+      --text-heading: #0F172A;
+      --text-body: #334155;
+      --text-muted: #64748B;
+      --text-faint: #94A3B8;
+      --border: #E2E8F0;
+      --border-light: #F1F5F9;
+      --surface: #FFFFFF;
+      --surface-muted: #F8FAFC;
+      --radius-lg: 16px;
+      --radius-md: 12px;
+      --radius-sm: 10px;
+      --shadow-card: 0 1px 3px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.02);
     }
 
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -47,43 +54,52 @@
       padding: 24px 32px;
     }
 
+    /* ============================================================
+       Tabs — Pill / Capsule Style
+       ============================================================ */
     .tabs {
       display: flex;
-      gap: 4px;
+      gap: 8px;
       margin-bottom: 24px;
-      border-bottom: 1px solid var(--border);
     }
 
     .tab {
-      padding: 10px 20px;
+      padding: 8px 20px;
       background: none;
       border: none;
       font-family: inherit;
       font-size: 14px;
       font-weight: 500;
-      color: var(--text-secondary);
+      color: var(--text-muted);
       cursor: pointer;
-      transition: var(--transition);
-      border-radius: 10px 10px 0 0;
+      transition: all 0.2s ease-out;
+      border-radius: 999px;
     }
 
     .tab:hover {
-      color: var(--text);
-      background: rgba(0,0,0,0.03);
+      color: var(--text-heading);
+      background: var(--surface-muted);
     }
 
     .tab.active {
       color: var(--primary);
-      background: #FFFFFF;
-      box-shadow: 0 -1px 0 #2563EB;
+      background: var(--primary-light);
       font-weight: 600;
     }
 
+    /* ============================================================
+       Page Header — Card Background
+       ============================================================ */
     .main-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
       margin-bottom: 24px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px 24px;
+      box-shadow: var(--shadow-card);
     }
 
     .main-header-left {
@@ -95,7 +111,7 @@
     .main-header-icon {
       width: 44px;
       height: 44px;
-      border-radius: var(--radius);
+      border-radius: var(--radius-md);
       background: rgba(37,99,235,0.08);
       display: flex;
       align-items: center;
@@ -109,18 +125,21 @@
     .main-title {
       font-size: 24px;
       font-weight: 700;
-      color: #1D1D1F;
+      color: var(--text-heading);
       letter-spacing: -0.02em;
       line-height: 1.3;
     }
 
     .main-subtitle {
       font-size: 14px;
-      color: #86868B;
+      color: var(--text-muted);
       margin-top: 2px;
       font-weight: 400;
     }
 
+    /* ============================================================
+       Stat Cards — Vertical Layout (sync with admin.html)
+       ============================================================ */
     .stats {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -129,65 +148,70 @@
     }
 
     .stat-card {
-      background: var(--bg-card);
-      border-radius: 14px;
-      padding: 18px 22px;
-      border: none;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-      transition: transform 0.25s ease-out, box-shadow 0.25s ease-out;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 18px 20px;
+      box-shadow: var(--shadow-card);
       display: flex;
-      align-items: center;
-      gap: 14px;
+      flex-direction: column;
+      gap: 4px;
+      transition: box-shadow 0.25s ease-out;
     }
 
     .stat-card:hover {
-      transform: scale(1.02);
       box-shadow: 0 4px 16px rgba(0,0,0,0.06);
     }
 
+    .stat-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
     .stat-card-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: 12px;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
     }
 
-    .stat-card-icon.blue { background: rgba(37,99,235,0.08); color: #2563EB; }
-    .stat-card-icon.green { background: rgba(22,163,74,0.08); color: #16A34A; }
-    .stat-card-icon.orange { background: rgba(249,115,22,0.08); color: #F97316; }
-    .stat-card-icon svg { width: 22px; height: 22px; }
-
-    .stat-card-body { flex: 1; }
+    .stat-card-icon.blue { background: var(--primary-light); color: var(--primary); }
+    .stat-card-icon.green { background: rgba(22,163,74,0.1); color: var(--green); }
+    .stat-card-icon.orange { background: rgba(249,115,22,0.1); color: var(--orange); }
+    .stat-card-icon svg { width: 16px; height: 16px; }
 
     .stat-card-value {
       font-size: 24px;
       font-weight: 700;
-      color: #1D1D1F;
-      line-height: 1.15;
+      color: var(--text-heading);
       letter-spacing: -0.02em;
+      line-height: 1.2;
     }
 
     .stat-card-value.blue { color: var(--primary); }
-    .stat-card-value.green { color: var(--success); }
+    .stat-card-value.green { color: var(--green); }
 
     .stat-card-label {
       font-size: 12px;
-      font-weight: 500;
-      color: #86868B;
+      font-weight: 600;
+      color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.04em;
-      margin-top: 2px;
     }
 
+    /* ============================================================
+       Chart Card
+       ============================================================ */
     .chart-card {
-      background: var(--bg-card);
-      border-radius: 16px;
-      border: none;
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
       overflow: hidden;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      box-shadow: var(--shadow-card);
       margin-bottom: 24px;
     }
 
@@ -196,14 +220,14 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-bottom: 1px solid #F0F0F0;
+      border-bottom: 1px solid var(--border);
       gap: 12px;
     }
 
     .chart-title {
       font-size: 15px;
       font-weight: 600;
-      color: #1D1D1F;
+      color: var(--text-heading);
       display: flex;
       align-items: center;
       gap: 8px;
@@ -213,12 +237,15 @@
 
     .chart-body { padding: 20px; height: 300px; }
 
+    /* ============================================================
+       Table Card
+       ============================================================ */
     .table-card {
-      background: var(--bg-card);
-      border-radius: 16px;
-      border: none;
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
       overflow: hidden;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      box-shadow: var(--shadow-card);
     }
 
     .table-header {
@@ -226,14 +253,14 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-bottom: 1px solid #F0F0F0;
+      border-bottom: 1px solid var(--border);
       gap: 12px;
     }
 
     .table-title {
       font-size: 15px;
       font-weight: 600;
-      color: #1D1D1F;
+      color: var(--text-heading);
       display: flex;
       align-items: center;
       gap: 8px;
@@ -243,65 +270,81 @@
 
     .table-wrapper { overflow-x: auto; }
 
+    /* ============================================================
+       Table
+       ============================================================ */
     table { width: 100%; border-collapse: collapse; min-width: 640px; }
 
-    thead { background: #FAFAFA; }
+    thead { background: var(--surface-muted); }
 
     th {
       padding: 12px 20px;
       text-align: left;
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 600;
-      color: #86868B;
+      color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      border-bottom: 1px solid #F0F0F0;
+      border-bottom: 1px solid var(--border);
       white-space: nowrap;
     }
 
     td {
       padding: 14px 20px;
       font-size: 14px;
-      border-bottom: 1px solid #F5F5F7;
-      color: #1D1D1F;
+      border-bottom: 1px solid var(--border-light);
+      color: var(--text-body);
       vertical-align: middle;
+      line-height: 1.5;
     }
 
-    tbody tr { transition: var(--transition); }
+    tbody tr { transition: background 0.15s ease-out; }
 
     tbody tr:last-child td { border-bottom: none; }
 
-    tbody tr:hover td { background: #F5F5F7; }
-
-    tbody tr:nth-child(even) td { background: #FAFAFA; }
-
-    tbody tr:nth-child(even):hover td { background: #F5F5F7; }
+    tbody tr:hover td { background: var(--surface-muted); }
 
     .td-mono {
       font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
       font-size: 13px;
-      color: var(--text-secondary);
+      color: var(--text-muted);
+    }
+
+    .td-muted {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .td-remark {
+      font-size: 13px;
+      color: var(--text-muted);
+      max-width: 160px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .td-actions { white-space: nowrap; display: flex; gap: 6px; }
 
+    /* ============================================================
+       Buttons
+       ============================================================ */
     .btn {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 6px 14px;
-      border-radius: 10px;
+      padding: 7px 14px;
+      border-radius: var(--radius-sm);
       font-size: 13px;
       font-weight: 500;
       cursor: pointer;
       border: none;
-      transition: background 0.2s ease-out, transform 0.15s ease-out, box-shadow 0.2s ease-out;
+      transition: background 0.15s ease-out, color 0.15s ease-out, box-shadow 0.15s ease-out;
       font-family: inherit;
       line-height: 1.4;
       white-space: nowrap;
+      user-select: none;
     }
-
-    .btn:active { transform: scale(0.97); }
 
     .btn svg { width: 14px; height: 14px; flex-shrink: 0; }
 
@@ -318,48 +361,54 @@
 
     .btn-danger {
       background: rgba(220,38,38,0.08);
-      color: var(--danger);
+      color: var(--red);
     }
 
     .btn-danger:hover { background: rgba(220,38,38,0.14); }
 
     .btn-ghost {
       background: rgba(0,0,0,0.03);
-      color: var(--text-secondary);
+      color: var(--text-body);
       border: none;
     }
 
     .btn-ghost:hover {
       background: rgba(0,0,0,0.06);
-      color: var(--text);
+      color: var(--text-heading);
     }
 
+    /* ============================================================
+       Badge — Pill Shape
+       ============================================================ */
     .badge {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 4px 12px;
-      border-radius: 9999px;
+      padding: 3px 10px;
+      border-radius: 999px;
       font-size: 12px;
       font-weight: 600;
-      line-height: 1.4;
+      line-height: 1.5;
     }
 
     .badge-green {
       background: rgba(22,163,74,0.1);
-      color: #16A34A;
+      color: var(--green);
     }
 
     .badge-red {
       background: rgba(220,38,38,0.1);
-      color: #DC2626;
+      color: var(--red);
     }
 
     .badge-yellow {
       background: rgba(217,119,6,0.1);
-      color: #D97706;
+      color: var(--yellow);
     }
 
+    /* ============================================================
+       Log / Disk Utilities
+       ============================================================ */
     .log-line {
       font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
       font-size: 13px;
@@ -374,6 +423,119 @@
       border-radius: 2px;
     }
 
+    .log-toolbar {
+      display: flex;
+      gap: 12px;
+      flex: 1;
+      align-items: center;
+    }
+
+    .log-select {
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-family: inherit;
+      background: var(--surface-muted);
+      color: var(--text-heading);
+      outline: none;
+      transition: border-color 0.15s ease-out, box-shadow 0.15s ease-out;
+    }
+
+    .log-select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+    }
+
+    .log-input {
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-family: inherit;
+      background: var(--surface-muted);
+      color: var(--text-heading);
+      width: 240px;
+      outline: none;
+      transition: border-color 0.15s ease-out, box-shadow 0.15s ease-out;
+    }
+
+    .log-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+    }
+
+    .log-input::placeholder {
+      color: var(--text-faint);
+    }
+
+    /* ============================================================
+       Disk List
+       ============================================================ */
+    .disk-list {
+      padding: 16px 24px;
+    }
+
+    .disk-item {
+      margin-bottom: 16px;
+    }
+
+    .disk-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .disk-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .disk-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .disk-label {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--text-heading);
+    }
+
+    .disk-usage {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .disk-usage-pct {
+      font-weight: 600;
+    }
+
+    .disk-usage-pct.danger { color: var(--red); }
+    .disk-usage-pct.warning { color: var(--yellow); }
+    .disk-usage-pct.normal { color: var(--text-muted); }
+
+    .disk-bar {
+      height: 8px;
+      background: var(--border-light);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .disk-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.6s ease;
+    }
+
+    .disk-bar-fill.danger { background: var(--red); }
+    .disk-bar-fill.warning { background: var(--yellow); }
+    .disk-bar-fill.normal { background: var(--green); }
+
+    /* ============================================================
+       Empty State
+       ============================================================ */
     .empty {
       padding: 60px 24px;
       text-align: center;
@@ -385,7 +547,7 @@
       height: 56px;
       margin: 0 auto 18px;
       border-radius: 14px;
-      background: #F5F5F7;
+      background: var(--surface-muted);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -396,6 +558,9 @@
 
     .empty p { font-size: 14px; line-height: 1.6; max-width: 280px; margin: 0 auto; }
 
+    /* ============================================================
+       Modal
+       ============================================================ */
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -409,7 +574,7 @@
     }
 
     .modal {
-      background: var(--bg-card);
+      background: var(--surface);
       border-radius: 20px;
       border: none;
       box-shadow: 0 8px 40px rgba(0,0,0,0.12);
@@ -421,7 +586,7 @@
     .modal-title {
       font-size: 16px;
       font-weight: 600;
-      color: #1D1D1F;
+      color: var(--text-heading);
       margin-bottom: 16px;
     }
 
@@ -437,16 +602,16 @@
       align-items: center;
       gap: 12px;
       padding: 14px 16px;
-      border: 2px solid #F0F0F0;
+      border: 2px solid var(--border);
       border-radius: 12px;
       cursor: pointer;
-      transition: var(--transition);
-      background: var(--bg-card);
+      transition: all 0.2s ease-out;
+      background: var(--surface);
     }
 
     .modal-option:hover,
     .modal-option.selected {
-      border-color: #2563EB;
+      border-color: var(--primary);
       background: rgba(37,99,235,0.06);
     }
 
@@ -462,14 +627,14 @@
       flex-shrink: 0;
     }
 
-    .modal-option-icon.blue { background: rgba(37,99,235,0.08); color: #2563EB; }
-    .modal-option-icon.green { background: rgba(22,163,74,0.08); color: #16A34A; }
-    .modal-option-icon.orange { background: rgba(249,115,22,0.08); color: #F97316; }
+    .modal-option-icon.blue { background: rgba(37,99,235,0.08); color: var(--primary); }
+    .modal-option-icon.green { background: rgba(22,163,74,0.08); color: var(--green); }
+    .modal-option-icon.orange { background: rgba(249,115,22,0.08); color: var(--orange); }
     .modal-option-icon svg { width: 18px; height: 18px; }
 
     .modal-option-body { flex: 1; }
-    .modal-option-label { font-size: 14px; font-weight: 600; color: #1D1D1F; }
-    .modal-option-desc { font-size: 12px; color: #86868B; margin-top: 2px; }
+    .modal-option-label { font-size: 14px; font-weight: 600; color: var(--text-heading); }
+    .modal-option-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
 
     .modal-actions {
       display: flex;
@@ -488,32 +653,35 @@
       display: block;
       font-size: 13px;
       font-weight: 500;
-      color: var(--text-secondary);
+      color: var(--text-muted);
       margin-bottom: 6px;
     }
 
     .modal-field input {
       width: 100%;
       padding: 10px 14px;
-      border: 1px solid #E5E5E5;
-      border-radius: 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
       font-size: 14px;
       font-family: inherit;
-      background: #FFFFFF;
-      color: var(--text);
-      transition: var(--transition);
+      background: var(--surface);
+      color: var(--text-heading);
+      transition: all 0.2s ease-out;
       outline: none;
     }
 
     .modal-field input:focus {
-      border-color: #2563EB;
+      border-color: var(--primary);
       box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
     }
 
     .modal-field input::placeholder {
-      color: var(--text-muted);
+      color: var(--text-faint);
     }
 
+    /* ============================================================
+       Responsive
+       ============================================================ */
     @media (max-width: 1024px) {
       .stats { grid-template-columns: repeat(2, 1fr); }
       .container { padding: 20px 24px; }
@@ -524,6 +692,8 @@
       .tab { flex-shrink: 0; }
       .stats { grid-template-columns: 1fr; }
       .main-header-icon { display: none; }
+      .log-toolbar { flex-wrap: wrap; }
+      .log-input { width: 100%; }
     }
   </style>
 </head>
@@ -561,31 +731,31 @@
         </div>
         <div class="stats">
           <div class="stat-card">
-            <div class="stat-card-icon blue">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
-            </div>
-            <div class="stat-card-body">
-              <div class="stat-card-value blue">{{ sys.cpu.usage }}%</div>
+            <div class="stat-card-header">
               <div class="stat-card-label">CPU 使用率（{{ sys.cpu.cores }} 核）</div>
+              <div class="stat-card-icon blue">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+              </div>
             </div>
+            <div class="stat-card-value blue">{{ sys.cpu.usage }}%</div>
           </div>
           <div class="stat-card">
-            <div class="stat-card-icon green">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="10" x2="6" y2="14"/><line x1="10" y1="10" x2="10" y2="14"/><line x1="14" y1="10" x2="14" y2="14"/><line x1="18" y1="10" x2="18" y2="14"/></svg>
-            </div>
-            <div class="stat-card-body">
-              <div class="stat-card-value green">{{ formatSize(sys.memory.used) }} / {{ formatSize(sys.memory.total) }}</div>
+            <div class="stat-card-header">
               <div class="stat-card-label">内存使用（{{ sys.memory.usagePercent }}%）</div>
+              <div class="stat-card-icon green">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="10" x2="6" y2="14"/><line x1="10" y1="10" x2="10" y2="14"/><line x1="14" y1="10" x2="14" y2="14"/><line x1="18" y1="10" x2="18" y2="14"/></svg>
+              </div>
             </div>
+            <div class="stat-card-value green">{{ formatSize(sys.memory.used) }} / {{ formatSize(sys.memory.total) }}</div>
           </div>
           <div class="stat-card">
-            <div class="stat-card-icon blue">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            </div>
-            <div class="stat-card-body">
-              <div class="stat-card-value blue">{{ formatUptime(sys.uptime) }}</div>
+            <div class="stat-card-header">
               <div class="stat-card-label">系统运行时长</div>
+              <div class="stat-card-icon blue">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
             </div>
+            <div class="stat-card-value blue">{{ formatUptime(sys.uptime) }}</div>
           </div>
         </div>
 
@@ -597,26 +767,20 @@
               磁盘状态
             </div>
           </div>
-          <div style="padding: 16px 24px;">
-            <div v-for="disk in sys.disks" :key="disk.mount" style="margin-bottom: 16px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <span style="font-weight: 600; font-size: 14px; color: #1D1D1F;">{{ disk.mount }}</span>
+          <div class="disk-list">
+            <div v-for="disk in sys.disks" :key="disk.mount" class="disk-item">
+              <div class="disk-header">
+                <div class="disk-info">
+                  <span class="disk-label">{{ disk.mount }}</span>
                   <span v-if="disk.isUploadDisk" class="badge badge-green">上传盘</span>
                 </div>
-                <span style="font-size: 13px; color: #86868B;">
+                <span class="disk-usage">
                   {{ formatSize(disk.used) }} / {{ formatSize(disk.total) }}
-                  <span :style="{ color: disk.usagePercent > 80 ? '#DC2626' : '#86868B', fontWeight: 600 }">({{ disk.usagePercent }}%)</span>
+                  <span :class="['disk-usage-pct', disk.usagePercent > 80 ? 'danger' : disk.usagePercent > 60 ? 'warning' : 'normal']">({{ disk.usagePercent }}%)</span>
                 </span>
               </div>
-              <div style="height: 8px; background: #F0F0F0; border-radius: 4px; overflow: hidden;">
-                <div :style="{
-                  width: disk.usagePercent + '%',
-                  height: '100%',
-                  borderRadius: '4px',
-                  background: disk.usagePercent > 80 ? '#DC2626' : disk.usagePercent > 60 ? '#D97706' : '#16A34A',
-                  transition: 'width 0.6s ease'
-                }"></div>
+              <div class="disk-bar">
+                <div :class="['disk-bar-fill', disk.usagePercent > 80 ? 'danger' : disk.usagePercent > 60 ? 'warning' : 'normal']" :style="{ width: disk.usagePercent + '%' }"></div>
               </div>
             </div>
           </div>
@@ -647,15 +811,15 @@
         </div>
         <div class="table-card">
           <div class="table-header">
-            <div style="display:flex;gap:12px;flex:1;align-items:center;">
-              <select v-model="logFilters.level" @change="loadLogs" style="padding:8px 12px;border:1px solid #F0F0F0;border-radius:6px;font-size:13px;background:#F5F5F7;color:#1D1D1F;">
+            <div class="log-toolbar">
+              <select v-model="logFilters.level" @change="loadLogs" class="log-select">
                 <option value="">全部级别</option>
                 <option value="error">Error</option>
                 <option value="warn">Warn</option>
                 <option value="info">Info</option>
                 <option value="debug">Debug</option>
               </select>
-              <input v-model="logFilters.keyword" @keyup.enter="loadLogs" placeholder="搜索关键字..." style="padding:8px 12px;border:1px solid #F0F0F0;border-radius:6px;font-size:13px;background:#F5F5F7;color:#1D1D1F;width:240px;" />
+              <input v-model="logFilters.keyword" @keyup.enter="loadLogs" placeholder="搜索关键字..." class="log-input" />
               <button class="btn btn-primary" @click="loadLogs">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 搜索
@@ -667,7 +831,7 @@
               <thead><tr><th>时间</th><th>级别</th><th>消息</th></tr></thead>
               <tbody>
                 <tr v-for="log in logs" :key="log.id">
-                  <td class="td-mono" style="font-size:12px;">{{ formatDateTime(log.timestamp) }}</td>
+                  <td class="td-mono td-muted" style="font-size:12px;">{{ formatDateTime(log.timestamp) }}</td>
                   <td><span class="badge" :class="getLogBadgeClass(log.level)">{{ log.level }}</span></td>
                   <td><span class="log-line" v-html="highlightKeyword(log.message, logFilters.keyword)"></span></td>
                 </tr>
@@ -702,22 +866,22 @@
         </div>
         <div class="stats">
           <div class="stat-card">
-            <div class="stat-card-icon blue">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            </div>
-            <div class="stat-card-body">
-              <div class="stat-card-value blue">{{ backups.length }}</div>
+            <div class="stat-card-header">
               <div class="stat-card-label">总备份数</div>
+              <div class="stat-card-icon blue">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </div>
             </div>
+            <div class="stat-card-value blue">{{ backups.length }}</div>
           </div>
           <div class="stat-card">
-            <div class="stat-card-icon green">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            </div>
-            <div class="stat-card-body">
-              <div class="stat-card-value green">{{ formatSize(backupStats.totalSize || 0) }}</div>
+            <div class="stat-card-header">
               <div class="stat-card-label">备份总大小</div>
+              <div class="stat-card-icon green">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </div>
             </div>
+            <div class="stat-card-value green">{{ formatSize(backupStats.totalSize || 0) }}</div>
           </div>
         </div>
         <div class="table-card">
@@ -734,9 +898,9 @@
                 <tr v-for="b in backups" :key="b.id">
                   <td class="td-mono">{{ b.id.substring(0, 8) }}...</td>
                   <td><span class="badge" :class="b.type === 'database' ? 'badge-green' : 'badge-yellow'">{{ b.type === 'database' ? '数据库' : '文件' }}</span></td>
-                  <td>{{ formatSize(b.size) }}</td>
-                  <td style="font-size:13px;color:#86868B;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" :title="b.remark || ''">{{ b.remark || '-' }}</td>
-                  <td style="font-size:13px;color:#86868B;">{{ formatDateTime(b.createdAt) }}</td>
+                  <td class="td-muted">{{ formatSize(b.size) }}</td>
+                  <td class="td-remark" :title="b.remark || ''">{{ b.remark || '-' }}</td>
+                  <td class="td-muted">{{ formatDateTime(b.createdAt) }}</td>
                   <td>
                     <div class="td-actions">
                       <button class="btn btn-ghost" @click="downloadBackup(b.id)">

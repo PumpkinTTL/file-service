@@ -309,6 +309,39 @@
        ============================================================ */
     .page-header {
       margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px 24px;
+      box-shadow: var(--shadow-card);
+    }
+
+    .page-header-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .page-header-icon.blue {
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+
+    .page-header-icon.orange {
+      background: rgba(249,115,22,0.1);
+      color: var(--orange);
+    }
+
+    .page-header-icon svg {
+      width: 24px;
+      height: 24px;
     }
 
     .page-title {
@@ -1265,8 +1298,13 @@
         <template v-if="tab === 'files'">
           <!-- Page Header -->
           <div class="page-header">
-            <div class="page-title">文件管理</div>
-            <div class="page-subtitle">管理所有上传的文件</div>
+            <div class="page-header-icon blue">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+            </div>
+            <div>
+              <div class="page-title">文件管理</div>
+              <div class="page-subtitle">管理所有上传的文件</div>
+            </div>
           </div>
 
           <!-- Stat Cards -->
@@ -1373,8 +1411,13 @@
         <template v-if="tab === 'tokens'">
           <!-- Page Header -->
           <div class="page-header">
-            <div class="page-title">Token 管理</div>
-            <div class="page-subtitle">管理 Upload Token 的创建、启用和轮换</div>
+            <div class="page-header-icon orange">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+            </div>
+            <div>
+              <div class="page-title">Token 管理</div>
+              <div class="page-subtitle">管理 Upload Token 的创建、启用和轮换</div>
+            </div>
           </div>
 
           <!-- Stat Cards -->
@@ -1539,7 +1582,7 @@
 
     createApp({
       setup() {
-        const tab = ref('files');
+        const tab = ref(localStorage.getItem('admin_tab') || 'files');
         const dashboardLoading = ref(true);
         const files = reactive({ items: [], total: 0, page: 1, totalPages: 0 });
         const tokens = reactive({ items: [], total: 0, page: 1, totalPages: 0 });
@@ -1619,6 +1662,7 @@
         const logout = () => { localStorage.removeItem('admin_token'); window.location.href = '/login.html'; };
 
         watch(tab, (val) => {
+          localStorage.setItem('admin_tab', val);
           if (val === 'dashboard') dashboardLoading.value = true;
         });
 
