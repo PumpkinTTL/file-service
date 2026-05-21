@@ -701,13 +701,13 @@
   <div id="app">
     <div class="container">
       <div class="tabs">
-        <button class="tab" :class="{ active: tab === 'monitor' }" @click="tab = 'monitor'">
+        <button class="tab" :class="{ active: tab === 'monitor' }" @click="switchTab('monitor')">
           监控面板
         </button>
-        <button class="tab" :class="{ active: tab === 'logs' }" @click="tab = 'logs'">
+        <button class="tab" :class="{ active: tab === 'logs' }" @click="switchTab('logs')">
           日志查询
         </button>
-        <button class="tab" :class="{ active: tab === 'backup' }" @click="tab = 'backup'">
+        <button class="tab" :class="{ active: tab === 'backup' }" @click="switchTab('backup')">
           备份管理
         </button>
       </div>
@@ -859,9 +859,9 @@
               <div class="main-subtitle">数据库与文件备份</div>
             </div>
           </div>
-          <button class="btn btn-primary" @click="triggerBackup">
+          <button class="btn btn-primary" @click="triggerBackup" :disabled="backupCreating">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-            手动备份
+            {{ backupCreating ? '备份中...' : '手动备份' }}
           </button>
         </div>
         <div class="stats">
@@ -939,7 +939,7 @@
             </div>
             <div class="modal-option-body">
               <div class="modal-option-label">全部备份</div>
-              <div class="modal-option-desc">同时备份数据库和文件元数据</div>
+              <div class="modal-option-desc">同时生成数据库 SQL 和上传文件压缩包</div>
             </div>
           </label>
           <label class="modal-option" :class="{ selected: backupType === 'database' }" @click="backupType = 'database'">
@@ -949,7 +949,7 @@
             </div>
             <div class="modal-option-body">
               <div class="modal-option-label">仅数据库</div>
-              <div class="modal-option-desc">备份所有数据库表数据</div>
+              <div class="modal-option-desc">备份数据库表结构与全部数据</div>
             </div>
           </label>
           <label class="modal-option" :class="{ selected: backupType === 'files' }" @click="backupType = 'files'">
@@ -958,8 +958,8 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
             </div>
             <div class="modal-option-body">
-              <div class="modal-option-label">仅文件元数据</div>
-              <div class="modal-option-desc">备份上传目录元数据信息</div>
+              <div class="modal-option-label">仅上传文件</div>
+              <div class="modal-option-desc">打包真实上传文件，自动排除备份目录和临时切片</div>
             </div>
           </label>
         </div>
@@ -974,8 +974,8 @@
           </div>
         </div>
         <div class="modal-actions">
-          <button class="btn btn-ghost" @click="backupModal = false">取消</button>
-          <button class="btn btn-primary" @click="executeBackup">开始备份</button>
+          <button class="btn btn-ghost" @click="backupModal = false" :disabled="backupCreating">取消</button>
+          <button class="btn btn-primary" @click="executeBackup" :disabled="backupCreating">{{ backupCreating ? '备份中...' : '开始备份' }}</button>
         </div>
       </div>
     </div>
@@ -998,7 +998,7 @@
 
     createApp({
       setup() {
-        const tab = ref('monitor');
+        const tab = ref(localStorage.getItem('admin_dashboard_tab') || 'monitor');
         const sys = reactive({
           cpu: { usage: 0, cores: 0, loadAvg: [0, 0, 0] },
           memory: { total: 0, used: 0, free: 0, usagePercent: 0 },
@@ -1016,6 +1016,10 @@
         const backupType = ref('all');
         const backupName = ref('');
         const backupRemark = ref('');
+        const backupCreating = ref(false);
+        const backupJobId = ref(localStorage.getItem('active_backup_job') || '');
+        let backupPollTimer = null;
+        let backupLoadingToast = null;
 
         const formatSize = (b) => {
           if (!b) return '0 B';
@@ -1118,6 +1122,10 @@
         };
 
         const triggerBackup = () => {
+          if (backupCreating.value) {
+            Toast.info('备份任务正在执行，请稍候', { sub: '刷新页面不会主动取消已提交到后端的备份请求。' });
+            return;
+          }
           backupType.value = 'all';
           backupName.value = '';
           backupRemark.value = '';
@@ -1125,17 +1133,77 @@
         };
 
         const executeBackup = async () => {
+          if (backupCreating.value) return;
           backupModal.value = false;
+          backupCreating.value = true;
+          backupLoadingToast = Toast.loading('备份正在创建...', {
+            sub: '数据库和上传文件可能较大，请不要重复点击。刷新页面后可重新进入备份页查看结果。'
+          });
           try {
             const body = {};
             if (backupType.value !== 'all') body.type = backupType.value;
             if (backupName.value.trim()) body.name = backupName.value.trim();
             if (backupRemark.value.trim()) body.remark = backupRemark.value.trim();
-            await http.post('/admin/backup/trigger', body);
-            Toast.success('备份任务已完成');
-            loadBackups();
+            const res = await http.post('/admin/backup/trigger', body);
+            const job = res.data.data || res.data;
+            backupJobId.value = job.id;
+            localStorage.setItem('active_backup_job', job.id);
+            startBackupPolling(job.id);
           } catch (e) {
+            closeBackupLoading();
             Toast.error(e.response?.data?.message || '备份失败');
+            backupCreating.value = false;
+          }
+        };
+
+        const startBackupPolling = (jobId) => {
+          if (!jobId) return;
+          backupCreating.value = true;
+          if (!backupLoadingToast) {
+            backupLoadingToast = Toast.loading('备份正在创建...', {
+              sub: '刷新页面后已恢复任务状态，正在等待后端完成。'
+            });
+          }
+          if (backupPollTimer) clearInterval(backupPollTimer);
+
+          const poll = async () => {
+            try {
+              const res = await http.get(`/admin/backup/job/${jobId}`);
+              const job = res.data.data || res.data;
+              if (job.status === 'running') return;
+
+              clearInterval(backupPollTimer);
+              backupPollTimer = null;
+              backupCreating.value = false;
+              backupJobId.value = '';
+              localStorage.removeItem('active_backup_job');
+              closeBackupLoading();
+
+              if (job.status === 'success') {
+                Toast.success(job.message || '备份任务已完成');
+                await loadBackups();
+              } else {
+                Toast.error(job.error || job.message || '备份失败');
+              }
+            } catch (e) {
+              clearInterval(backupPollTimer);
+              backupPollTimer = null;
+              backupCreating.value = false;
+              backupJobId.value = '';
+              localStorage.removeItem('active_backup_job');
+              closeBackupLoading();
+              Toast.error(e.response?.data?.message || '查询备份任务状态失败');
+            }
+          };
+
+          poll();
+          backupPollTimer = setInterval(poll, 2000);
+        };
+
+        const closeBackupLoading = () => {
+          if (backupLoadingToast) {
+            backupLoadingToast.dismiss();
+            backupLoadingToast = null;
           }
         };
 
@@ -1145,7 +1213,7 @@
             const url = URL.createObjectURL(res.data);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `backup-${id.substring(0, 8)}.json`;
+            a.download = id;
             a.click();
             URL.revokeObjectURL(url);
           } catch (e) {
@@ -1165,7 +1233,12 @@
           });
         };
 
+        const switchTab = (name) => {
+          tab.value = name;
+        };
+
         watch(tab, (newTab) => {
+          localStorage.setItem('admin_dashboard_tab', newTab);
           if (newTab === 'monitor') loadMonitorStats();
           else if (newTab === 'logs') loadLogs();
           else if (newTab === 'backup') loadBackups();
@@ -1177,10 +1250,17 @@
             window.parent.postMessage({ type: 'auth-failed' }, window.location.origin);
             return;
           }
-          loadMonitorStats();
+          if (tab.value === 'monitor') loadMonitorStats();
+          else if (tab.value === 'logs') loadLogs();
+          else if (tab.value === 'backup') {
+            loadBackups();
+            if (backupJobId.value) startBackupPolling(backupJobId.value);
+          }
         });
 
         onUnmounted(() => {
+          if (backupPollTimer) clearInterval(backupPollTimer);
+          closeBackupLoading();
           if (uploadChartInstance.value) {
             uploadChartInstance.value.dispose();
             uploadChartInstance.value = null;
@@ -1190,9 +1270,11 @@
         return {
           tab, sys, uploadStats, uploadChart, logs, logFilters, backups, backupStats,
           backupModal, backupType, backupName, backupRemark,
-          loadMonitorStats, loadLogs, getLogBadgeClass, highlightKeyword,
-          loadBackups, triggerBackup, executeBackup, downloadBackup, deleteBackup,
-          formatSize, formatDateTime, formatUptime
+          backupCreating, backupJobId,
+           loadMonitorStats, loadLogs, getLogBadgeClass, highlightKeyword,
+           loadBackups, triggerBackup, executeBackup, downloadBackup, deleteBackup,
+           switchTab,
+           formatSize, formatDateTime, formatUptime
         };
       }
     }).mount('#app');

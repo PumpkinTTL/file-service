@@ -75,6 +75,16 @@
     ._toast.error   ._toast-icon { background: rgba(220,38,38,0.1); color: #DC2626; }
     ._toast.warning ._toast-icon { background: rgba(217,119,6,0.1); color: #D97706; }
     ._toast.info    ._toast-icon { background: rgba(37,99,235,0.1); color: #2563EB; }
+    ._toast.loading ._toast-icon { background: rgba(37,99,235,0.1); color: #2563EB; }
+
+    ._toast.loading ._toast-icon svg {
+      animation: _toastSpin 0.9s linear infinite;
+    }
+
+    @keyframes _toastSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
 
     ._toast-body { flex: 1; min-width: 0; }
 
@@ -129,6 +139,7 @@
     ._toast.error   ._toast-progress { background: rgba(220,38,38,0.3); }
     ._toast.warning ._toast-progress { background: rgba(217,119,6,0.3); }
     ._toast.info    ._toast-progress { background: rgba(37,99,235,0.3); }
+    ._toast.loading ._toast-progress { display: none; }
 
     @keyframes _toastProgress {
       from { width: 100%; }
@@ -260,7 +271,8 @@
     warning: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
     info:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
     close:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
-    danger:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
+    danger:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+    loading: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.22-8.56"/></svg>'
   }
 
   /* ============================================================
@@ -282,7 +294,7 @@
      ============================================================ */
   function showToast(type, message, options) {
     options = options || {}
-    var duration = options.duration || 3000
+    var duration = options.duration === 0 ? 0 : (options.duration || 3000)
     var sub = options.sub || ''
 
     var el = document.createElement('div')
@@ -295,7 +307,7 @@
         (sub ? '<div class="_toast-sub">' + escapeHtml(sub) + '</div>' : '') +
       '</div>' +
       '<button class="_toast-close">' + ICONS.close + '</button>' +
-      '<div class="_toast-progress" style="animation-duration:' + duration + 'ms"></div>'
+      (duration > 0 ? '<div class="_toast-progress" style="animation-duration:' + duration + 'ms"></div>' : '')
 
     var closeBtn = el.querySelector('._toast-close')
     var timer = null
@@ -310,7 +322,7 @@
     }
 
     closeBtn.addEventListener('click', dismiss)
-    timer = setTimeout(dismiss, duration)
+    if (duration > 0) timer = setTimeout(dismiss, duration)
 
     getContainer().appendChild(el)
     return { dismiss: dismiss }
@@ -373,6 +385,7 @@
     error:   function (msg, opts) { return showToast('error', msg, opts) },
     warning: function (msg, opts) { return showToast('warning', msg, opts) },
     info:    function (msg, opts) { return showToast('info', msg, opts) },
+    loading: function (msg, opts) { return showToast('loading', msg, Object.assign({ duration: 0 }, opts || {})) },
     confirm: showConfirm
   }
 })()
