@@ -305,6 +305,23 @@
     }
 
     /* ============================================================
+       Tab Transition
+       ============================================================ */
+    .tab-fade-enter-active {
+      transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+    }
+    .tab-fade-leave-active {
+      transition: opacity 0.12s ease-in;
+    }
+    .tab-fade-enter-from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    .tab-fade-leave-to {
+      opacity: 0;
+    }
+
+    /* ============================================================
        Page Header — Section Title
        ============================================================ */
     .page-header {
@@ -1294,8 +1311,9 @@
 
       <!-- Main Content -->
       <main class="main">
+        <transition name="tab-fade" mode="out-in">
         <!-- Files Tab -->
-        <template v-if="tab === 'files'">
+        <div v-if="tab === 'files'" key="files">
           <!-- Page Header -->
           <div class="page-header">
             <div class="page-header-icon blue">
@@ -1317,24 +1335,6 @@
                 </div>
               </div>
               <span class="stat-card-value blue">{{ files.total }}</span>
-            </div>
-            <div class="stat-card">
-              <div class="stat-card-header">
-                <span class="stat-card-label">当前页</span>
-                <div class="stat-card-icon green">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 12 6 12 9 18 15 6 18 12 22 12"/></svg>
-                </div>
-              </div>
-              <span class="stat-card-value">{{ files.page }} / {{ files.totalPages || 1 }}</span>
-            </div>
-            <div class="stat-card">
-              <div class="stat-card-header">
-                <span class="stat-card-label">每页显示</span>
-                <div class="stat-card-icon orange">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-                </div>
-              </div>
-              <span class="stat-card-value">{{ filesPageSize }} 条</span>
             </div>
           </div>
 
@@ -1405,10 +1405,10 @@
               </div>
             </div>
           </div>
-        </template>
+        </div>
 
         <!-- Tokens Tab -->
-        <template v-if="tab === 'tokens'">
+        <div v-else-if="tab === 'tokens'" key="tokens">
           <!-- Page Header -->
           <div class="page-header">
             <div class="page-header-icon orange">
@@ -1522,10 +1522,10 @@
               </div>
             </div>
           </div>
-        </template>
+        </div>
 
         <!-- Dashboard Tab -->
-        <template v-if="tab === 'dashboard'">
+        <div v-else key="dashboard">
           <div class="dashboard-frame">
             <div v-if="dashboardLoading" class="dashboard-loading">
               <div class="dashboard-loading-inner">
@@ -1535,7 +1535,8 @@
             </div>
             <iframe src="/admin-dashboard.html" title="运维中心面板" @load="dashboardLoading = false" class="dashboard-iframe"></iframe>
           </div>
-        </template>
+        </div>
+        </transition>
       </main>
     </div>
 
